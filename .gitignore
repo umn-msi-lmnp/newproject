@@ -1,0 +1,6 @@
+code_out/*
+meta/
+input/
+*slurm.e*
+*slurm.o*
+slurm-*.out
