@@ -14,7 +14,7 @@
 
 ```
 cd /home/GROUP/shared/ris/USER
-git clone "https://github.umn.edu:lmnp/newproject" PROJECT_NAME
+git clone "git@github.umn.edu:lmnp/newproject.git" PROJECT_NAME
 cd PROJECT_NAME
 ```
 
