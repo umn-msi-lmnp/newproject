@@ -4,3 +4,7 @@ input/
 *slurm.e*
 *slurm.o*
 slurm-*.out
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
