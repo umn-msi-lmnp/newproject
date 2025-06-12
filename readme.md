@@ -10,10 +10,18 @@
 
 ## Project details
 
-> - Establish a project name using this format `{unique_info}_{technology}_{YYYYMMDD}`. For example, `wt_vs_gene_ko_scrnaseq_20250204`.
+> - Establish a project name
+>   - Project repos on GitHub and directory names on MSI can be different
+>   - For the sake of uniform organization, create GitHub repo names in this format: `{group_id}_{user_id}_{unique_info}_{YYYYMMDD}`
+>   - The directory name on MSI, should be created at this location, with this format: `/projects/standard/{group_id}/shared/ris/{user_id}/{unique_info}_{YYYYMMDD}`
 > - Include the date for the start of the project (including day) because sometimes projects fall within or between months.
+> - If you inherit a project (or collaborate on a project), each MSI analyst should create their own project dir. This will keep results and code separated. Linking to files in the related outputs, is ok (encouraged!).
 
-The project name is:
+The github.umn.edu/lmnp repo name is (for example, Todd working on a Mike Farrar project):
+
+    farrarm_knut0297_wt_vs_gene_ko_scrnaseq_20250204
+
+The directory name on MSI is:
 
     wt_vs_gene_ko_scrnaseq_20250204
 
@@ -46,6 +54,7 @@ The project name is:
 
   ```
   /home/GROUP/data_delivery/umgc/RUN/PROJECT
+  /projects/standard/GROUP/data_delivery/umgc/RUN/PROJECT
   ```
 
 - Raw sequencing data (above) were copied to MSI Tier2 (ceph) for long term storage. These data can be recovered if MSI hard drives fail, but not if MSI is destroyed. The data are stored in the bucket below.
@@ -59,6 +68,7 @@ The project name is:
 
   ```
   /home/GROUP/shared/disaster_recovery/ris/data_delivery/umgc/RUN/PROJECT
+  /projects/standard/GROUP/shared/disaster_recovery/ris/data_delivery/umgc/RUN/PROJECT
   ```
 
 ### Analyzed data
@@ -68,11 +78,12 @@ The project name is:
 > - After establishing a private GitHub repo.
 >   - Include a link to that repo below.
 >   - You can add read or write access to the repo via GitHub teams (e.g. `lmnp_team` and `PI_team`).
->   - When creating the repo on GitHub, prefix the PI group to the project name in this format `{GROUP}_{PROJECT_NAME}` (e.g. `farrarm_wt_vs_gene_ko_scrnaseq_20250204`).
+>   - When creating the repo on GitHub, prefix the PI group and your username to the project name in this format `{GROUP}_{USER}_{PROJECT_NAME}` (e.g. `farrarm_knut0297_wt_vs_gene_ko_scrnaseq_20250204`).
 
 The project directory (below) can be found on MSI Tier 1 storage. It contains all of the input files (or symlinks to input files), source code, output files, and metadata files.
 
     /home/GROUP/shared/ris/USER/wt_vs_gene_ko_scrnaseq_20250204
+    /projects/standard/GROUP/shared/ris/USER/wt_vs_gene_ko_scrnaseq_20250204
 
 Inside the project directory above, various sub-directories can be found and are described below:
 

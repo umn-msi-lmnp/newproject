@@ -3,8 +3,10 @@
 ## Start a new research project
 
 - Establish a project name
+  - Project repos on GitHub and directory names on MSI can be different
+  - For the sake of uniform organization, create GitHub repo names in this format: `{group_id}_{user_id}_{unique_info}_{YYYYMMDD}`
+  - The directory name on MSI, should be created at this location, with this format: `/projects/standard/{group_id}/shared/{ris}/{user_id}/{unique_info}_{YYYYMMDD}`
 - Determine a location on MSI Tier 1 for the project dir
-
 
 ## Clone this repo
 
@@ -22,7 +24,6 @@ cd PROJECT_NAME
 
 - Remove the `newproject` .git folder (we don't want to sync with `newproject`)
 - Remove the instructions file.
-
 
 ```
 rm -rf .git
