@@ -43,3 +43,15 @@ if (!dir.exists(glue("{out_dir}"))) {
 setwd(glue("{out_dir}"))
 
 
+
+
+
+
+
+
+#######################################################################
+# Session info
+#######################################################################
+
+writeLines(capture.output(sessionInfo()), paste0("sessionInfo_", format(Sys.time(), "%Y%m%d-%H%M%S"), ".txt"))
+
