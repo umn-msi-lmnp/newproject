@@ -1,0 +1,38 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%labels
+    Description "Minimal container with Picard Tools"
+
+%post
+    set -eux
+
+    apt-get update && apt-get install -y \
+        wget \
+        openjdk-17-jre-headless \
+        && apt-get clean
+
+    # Picard version
+    PICARD_VERSION="3.0.0"
+
+    mkdir -p /opt/picard
+    cd /opt/picard
+
+    wget -q https://github.com/broadinstitute/picard/releases/download/${PICARD_VERSION}/picard.jar
+
+    chmod 755 /opt/picard
+
+    # Add wrapper so `picard` works like a CLI command
+    cat << 'EOF' > /usr/local/bin/picard
+#!/bin/bash
+exec java -jar /opt/picard/picard.jar "$@"
+EOF
+
+    chmod +x /usr/local/bin/picard
+
+%environment
+    export PICARD_HOME=/opt/picard
+    export PATH="/usr/local/bin:$PATH"
+
+%runscript
+    exec picard "$@"

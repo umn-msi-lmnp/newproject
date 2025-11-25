@@ -1,0 +1,17 @@
+name: env1
+channels:
+  - r
+  - bioconda
+  - conda-forge
+dependencies:
+  - r-base=4.3
+  - r-tidyverse
+  - r-ggplot2
+  - bioconductor-deseq2
+  - r-seurat>=5
+  - r-leiden
+  - r-sessioninfo
+  - python>=3.9
+  - pip
+  - pip:
+      - leidenalg

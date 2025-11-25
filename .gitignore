@@ -1,10 +1,20 @@
-code_out/*
-meta/
-input/
-*slurm.e*
-*slurm.o*
-slurm-*.out
+# Ignore analysis outputs
+code_out/
+
+# Ignore slurm logs
+*.slurm.e*
+*.slurm.o*
+
+# Ignore built software (reproducibly installed, don't track)
+software_build/
+
+# Ignore apptainer cache and temp files
+.apptainer/
+
+# Ignore temp files
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+.RData
 .Rproj.user
 .Rhistory
-.RData
-.Ruserdata
