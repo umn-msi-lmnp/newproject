@@ -1,4 +1,4 @@
-name: env1
+name: conda1
 channels:
   - r
   - bioconda
@@ -10,8 +10,12 @@ dependencies:
   - bioconductor-deseq2
   - r-seurat>=5
   - r-leiden
+  - r-reticulate
   - r-sessioninfo
   - python>=3.9
   - pip
   - pip:
+      - numpy
+      - pandas
+      - python-igraph
       - leidenalg

@@ -13,10 +13,15 @@
 
 set -euo pipefail
 
-# Setup environment - Activate conda env2 (Python/bioinformatics)
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export CONDARC="${PROJECT_ROOT}/software_build/miniforge/.condarc"
-source "${PROJECT_ROOT}/software_build/miniforge/bin/activate" env2
+# Setup environment - Activate conda2 (Python/bioinformatics)
+if [ -n "${SLURM_SUBMIT_DIR:-}" ]; then
+    # Running via SLURM - use submit directory
+    PROJECT_ROOT="$(cd "${SLURM_SUBMIT_DIR}/.." && pwd)"
+else
+    # Running interactively - use script location
+    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+source "${PROJECT_ROOT}/software/use_conda2.sh"
 
 # Run Python script
 python "${PROJECT_ROOT}/code/demo_python_analysis.py"

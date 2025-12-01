@@ -13,8 +13,14 @@
 
 set -euo pipefail
 
-# Get absolute path to project root
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Get project root and setup paths
+if [ -n "${SLURM_SUBMIT_DIR:-}" ]; then
+    # Running via SLURM - use submit directory
+    PROJECT_ROOT="$(cd "${SLURM_SUBMIT_DIR}/.." && pwd)"
+else
+    # Running interactively - use script location
+    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
 INSTALL_DIR="${PROJECT_ROOT}/software_build/miniforge"
 MINIFORGE_VERSION="24.7.1-0"
 

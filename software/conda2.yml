@@ -1,4 +1,4 @@
-name: env2
+name: conda2
 channels:
   - bioconda
   - conda-forge

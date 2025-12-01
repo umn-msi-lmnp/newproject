@@ -13,10 +13,15 @@
 
 set -euo pipefail
 
-# Setup environment - Activate conda env1 (R environment)
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export CONDARC="${PROJECT_ROOT}/software_build/miniforge/.condarc"
-source "${PROJECT_ROOT}/software_build/miniforge/bin/activate" env1
+# Setup environment - Activate conda1 (R environment)
+if [ -n "${SLURM_SUBMIT_DIR:-}" ]; then
+    # Running via SLURM - use submit directory
+    PROJECT_ROOT="$(cd "${SLURM_SUBMIT_DIR}/.." && pwd)"
+else
+    # Running interactively - use script location
+    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+source "${PROJECT_ROOT}/software/use_conda1.sh"
 
 # Run R script
 Rscript --vanilla "${PROJECT_ROOT}/code/demo_r_analysis.R"
