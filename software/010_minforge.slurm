@@ -29,6 +29,14 @@ MINIFORGE_VERSION="24.7.1-0"
 
 echo "Installing Miniforge to ${INSTALL_DIR}"
 
+# Rename existing output directory if it exists
+if [ -d "${OUTPUT_DIR}" ]; then
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    OLD_DIR="${PROJECT_ROOT}/software_out/010_miniforge_DELETE_THIS_${TIMESTAMP}"
+    echo "Existing output directory found. Renaming to: 010_miniforge_DELETE_THIS_${TIMESTAMP}"
+    mv "${OUTPUT_DIR}" "${OLD_DIR}"
+fi
+
 # Create output directory
 mkdir -p "${OUTPUT_DIR}"
 

@@ -31,11 +31,19 @@ OUTPUT_DIR="${PROJECT_ROOT}/software_out/012_conda2"
 # Input files
 ENV_FILE="${PROJECT_ROOT}/software/conda2.yml"
 
-# Force conda to use project-local paths only (not $HOME/.conda)
-export CONDARC="${MINIFORGE_DIR}/.condarc"
+# Rename existing output directory if it exists
+if [ -d "${OUTPUT_DIR}" ]; then
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    OLD_DIR="${PROJECT_ROOT}/software_out/012_conda2_DELETE_THIS_${TIMESTAMP}"
+    echo "Existing output directory found. Renaming to: 012_conda2_DELETE_THIS_${TIMESTAMP}"
+    mv "${OUTPUT_DIR}" "${OLD_DIR}"
+fi
 
 # Create output directory
 mkdir -p "${OUTPUT_DIR}"
+
+# Force conda to use project-local paths only (not $HOME/.conda)
+export CONDARC="${MINIFORGE_DIR}/.condarc"
 
 # Activate miniforge
 source "${MINIFORGE_DIR}/bin/activate"

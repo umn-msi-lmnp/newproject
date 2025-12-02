@@ -35,6 +35,14 @@ export APPTAINER_TMPDIR="${PROJECT_ROOT}/.apptainer/tmp"
 echo "Building Apptainer container: apptainer1.sif"
 echo "Using project cache: ${APPTAINER_CACHEDIR}"
 
+# Rename existing output directory if it exists
+if [ -d "${OUTPUT_DIR}" ]; then
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    OLD_DIR="${PROJECT_ROOT}/software_out/021_apptainer1_DELETE_THIS_${TIMESTAMP}"
+    echo "Existing output directory found. Renaming to: 021_apptainer1_DELETE_THIS_${TIMESTAMP}"
+    mv "${OUTPUT_DIR}" "${OLD_DIR}"
+fi
+
 # Build container
 mkdir -p "${OUTPUT_DIR}"
 mkdir -p "${APPTAINER_CACHEDIR}"

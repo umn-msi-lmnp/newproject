@@ -38,6 +38,14 @@ echo "Version: ${DEEPVARIANT_VERSION}"
 echo "Source: ${DOCKER_IMAGE}"
 echo "Using project cache: ${APPTAINER_CACHEDIR}"
 
+# Rename existing output directory if it exists
+if [ -d "${OUTPUT_DIR}" ]; then
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    OLD_DIR="${PROJECT_ROOT}/software_out/031_deepvariant_DELETE_THIS_${TIMESTAMP}"
+    echo "Existing output directory found. Renaming to: 031_deepvariant_DELETE_THIS_${TIMESTAMP}"
+    mv "${OUTPUT_DIR}" "${OLD_DIR}"
+fi
+
 # Create directories
 mkdir -p "${OUTPUT_DIR}"
 mkdir -p "${APPTAINER_CACHEDIR}"
