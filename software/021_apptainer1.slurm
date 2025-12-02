@@ -21,8 +21,12 @@ else
     # Running interactively - use script location
     PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
+
+# Output directory matching this script's name
+OUTPUT_DIR="${PROJECT_ROOT}/software_out/021_apptainer1"
+
+# Input files
 DEF_FILE="${PROJECT_ROOT}/software/apptainer1.def"
-CONTAINER_DIR="${PROJECT_ROOT}/software_build/apptainers"
 
 # Configure Apptainer to use project-local cache (not $HOME/.apptainer)
 export APPTAINER_CACHEDIR="${PROJECT_ROOT}/.apptainer/cache"
@@ -32,10 +36,10 @@ echo "Building Apptainer container: apptainer1.sif"
 echo "Using project cache: ${APPTAINER_CACHEDIR}"
 
 # Build container
-mkdir -p "${CONTAINER_DIR}"
+mkdir -p "${OUTPUT_DIR}"
 mkdir -p "${APPTAINER_CACHEDIR}"
 mkdir -p "${APPTAINER_TMPDIR}"
-cd "${CONTAINER_DIR}"
+cd "${OUTPUT_DIR}"
 apptainer build --fakeroot apptainer1.sif "${DEF_FILE}"
 
-echo "Done! Container ready at ${CONTAINER_DIR}/apptainer1.sif"
+echo "Done! Container ready at ${OUTPUT_DIR}/apptainer1.sif"

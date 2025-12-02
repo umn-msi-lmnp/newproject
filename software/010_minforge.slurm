@@ -21,17 +21,20 @@ else
     # Running interactively - use script location
     PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
-INSTALL_DIR="${PROJECT_ROOT}/software_build/miniforge"
+
+# Output directory matching this script's name
+OUTPUT_DIR="${PROJECT_ROOT}/software_out/010_miniforge"
+INSTALL_DIR="${OUTPUT_DIR}/miniforge"
 MINIFORGE_VERSION="24.7.1-0"
 
 echo "Installing Miniforge to ${INSTALL_DIR}"
 
-# Create installation directory
-mkdir -p "${PROJECT_ROOT}/software_build"
+# Create output directory
+mkdir -p "${OUTPUT_DIR}"
 
 # Download and install if not already present
 if [ ! -d "${INSTALL_DIR}" ]; then
-    cd "${PROJECT_ROOT}/software_build"
+    cd "${OUTPUT_DIR}"
     
     echo "Downloading Miniforge..."
     wget -q "https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE_VERSION}/Miniforge3-${MINIFORGE_VERSION}-Linux-x86_64.sh"
@@ -64,4 +67,4 @@ echo "Creating .apptainer directory for container builds..."
 mkdir -p "${PROJECT_ROOT}/.apptainer/cache"
 mkdir -p "${PROJECT_ROOT}/.apptainer/tmp"
 
-echo "Done! All software will be self-contained in this project."
+echo "Done! Miniforge output is in ${OUTPUT_DIR}/"

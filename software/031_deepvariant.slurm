@@ -21,7 +21,9 @@ else
     # Running interactively - use script location
     PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
-CONTAINER_DIR="${PROJECT_ROOT}/software_build/apptainers"
+
+# Output directory matching this script's name
+OUTPUT_DIR="${PROJECT_ROOT}/software_out/031_deepvariant"
 
 # Configure Apptainer to use project-local cache (not $HOME/.apptainer)
 export APPTAINER_CACHEDIR="${PROJECT_ROOT}/.apptainer/cache"
@@ -37,13 +39,13 @@ echo "Source: ${DOCKER_IMAGE}"
 echo "Using project cache: ${APPTAINER_CACHEDIR}"
 
 # Create directories
-mkdir -p "${CONTAINER_DIR}"
+mkdir -p "${OUTPUT_DIR}"
 mkdir -p "${APPTAINER_CACHEDIR}"
 mkdir -p "${APPTAINER_TMPDIR}"
 
 # Download and convert Docker image to SIF
-cd "${CONTAINER_DIR}"
+cd "${OUTPUT_DIR}"
 apptainer pull deepvariant.sif "${DOCKER_IMAGE}"
 
-echo "Done! Container ready at ${CONTAINER_DIR}/deepvariant.sif"
-echo "Test with: apptainer exec ${CONTAINER_DIR}/deepvariant.sif run_deepvariant --version"
+echo "Done! Container ready at ${OUTPUT_DIR}/deepvariant.sif"
+echo "Test with: apptainer exec ${OUTPUT_DIR}/deepvariant.sif run_deepvariant --version"

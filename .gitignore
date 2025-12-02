@@ -1,12 +1,16 @@
 # Ignore analysis outputs
 code_out/
 
+# Ignore large input data (but keep directory structure)
+input/*
+!input/.gitkeep
+
 # Ignore slurm logs
 *.slurm.e*
 *.slurm.o*
 
 # Ignore built software (reproducibly installed, don't track)
-software_build/
+software_out/
 
 # Ignore apptainer cache and temp files
 .apptainer/

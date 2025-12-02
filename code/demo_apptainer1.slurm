@@ -21,7 +21,7 @@ else
     # Running interactively - use script location
     PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
-CONTAINER_SIF="${PROJECT_ROOT}/software_build/apptainers/apptainer1.sif"
+CONTAINER_SIF="${PROJECT_ROOT}/software_out/021_apptainer1/apptainer1.sif"
 OUT_DIR="${PROJECT_ROOT}/code_out/demo_apptainer1"
 
 # Configure Apptainer to use project-local cache (not $HOME/.apptainer)

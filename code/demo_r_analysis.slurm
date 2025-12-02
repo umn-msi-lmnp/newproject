@@ -21,7 +21,7 @@ else
     # Running interactively - use script location
     PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
-source "${PROJECT_ROOT}/software/use_conda1.sh"
+source "${PROJECT_ROOT}/software_out/011_conda1/use_conda1.sh"
 
 # Run R script
 Rscript --vanilla "${PROJECT_ROOT}/code/demo_r_analysis.R"

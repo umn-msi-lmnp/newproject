@@ -50,7 +50,7 @@ s3cmd ls s3://BUCKET/projects/standard/GROUP/shared/ris/USER/your_project_name_Y
 | `input/`            | Input files or symlinks to input data                                                                    |
 | `meta/`             | Project metadata (grants, papers, presentations, protocols, non-tidy sample sheets, etc.)                |
 | `software/`         | Build scripts for reproducible software environments (version controlled)                                |
-| `software_build/`   | Built software environments (not in git, reproducible from `software/`)                                  |
+| `software_out/`     | Built software environments (not in git, reproducible from `software/`)                                  |
 | `.apptainer/`       | Apptainer build cache (not in git, could be deleted, not required)                                       |
 | `changelog.md`      | Chronological log of project changes, notes, to-dos                                                      |
 | `readme.md`         | This file - project overview and documentation                                                           |

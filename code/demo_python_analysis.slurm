@@ -21,7 +21,7 @@ else
     # Running interactively - use script location
     PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
-source "${PROJECT_ROOT}/software/use_conda2.sh"
+source "${PROJECT_ROOT}/software_out/012_conda2/use_conda2.sh"
 
 # Run Python script
 python "${PROJECT_ROOT}/code/demo_python_analysis.py"
