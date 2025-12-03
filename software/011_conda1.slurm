@@ -81,7 +81,7 @@ echo "Creating conda activation/deactivation scripts..."
 CONDA1_PREFIX="${MINIFORGE_DIR}/envs/conda1"
 
 # Detect gcc version dynamically
-GCC_VERSION=$(ls -d "${CONDA1_PREFIX}/lib/gcc/x86_64-conda-linux-gnu"/* 2>/dev/null | head -1 | xargs basename)
+GCC_VERSION=$(ls -d "${CONDA1_PREFIX}/lib/gcc/x86_64-conda-linux-gnu"/* 2>/dev/null | head -1 | xargs -r basename)
 if [ -z "$GCC_VERSION" ]; then
     echo "Warning: gcc not found in conda1, skipping gcc library path"
     GCC_LIB_PATH=""
