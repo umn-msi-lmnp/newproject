@@ -8,7 +8,7 @@ This is a template for starting new bioinformatics projects with reproducible, s
 
 ```bash
 cd /projects/standard/GROUP/shared/ris/USER
-git clone "git@github.umn.edu:lmnp/newproject.git" my_project_name
+git clone "git@github.com:umn-msi-lmnp/newproject.git" my_project_name
 cd my_project_name
 ```
 
@@ -42,6 +42,7 @@ Each script can also be run as a shell script: `bash 010_minforge.slurm`
 - `software/010_minforge.slurm` → `software_out/010_miniforge/`
 - `software/011_conda1.slurm` → `software_out/011_conda1/`
 - `software/021_apptainer1.slurm` → `software_out/021_apptainer1/`
+- `software/031_deepvariant.slurm` → `software_out/031_deepvariant/`
 
 This makes it crystal clear which script built what output. You can delete the entire `software_out/` directory and rebuild everything from scratch using the scripts in `software/`.
 
@@ -60,9 +61,8 @@ sbatch 012_conda2.slurm    # Build tricky environment (old version of tools or c
 ```
 
 **When to use:**
-- You need R or Python packages
-- You want full control over package versions
-- You need a mix of conda and pip packages
+- Use `conda1` as your main conda env. This should include as much software as possible.
+- Create additional conda envs, as needed (e.g. if you cannot include everything into one env.)
 
 **Configuration files:**
 - `software/conda1.yml` - Main environment (R & python) specification
@@ -128,7 +128,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${PROJECT_ROOT}/software_out/011_conda1/use_conda1.sh"
 ```
 
-**For Python (conda2):**
+**For other work (conda2):**
 ```bash
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${PROJECT_ROOT}/software_out/012_conda2/use_conda2.sh"
@@ -151,7 +151,7 @@ source software_out/011_conda1/use_conda1.sh  # Activate conda1
 # ... do R work ...
 
 source software_out/012_conda2/use_conda2.sh  # Switch to conda2
-# ... do Python work ...
+# ... do other work ...
 ```
 
 ### In RStudio Server (Open OnDemand)
@@ -183,16 +183,21 @@ Sys.getenv("LD_LIBRARY_PATH")  # Should show conda1 library paths first
 - If RStudio fails to start, check the job output logs for error messages
 - If packages fail to load, check that `LD_LIBRARY_PATH` is set correctly (see verification above)
 
-## Demo Scripts
+## Demo Script
 
-Three example scripts demonstrate each software method:
+A single comprehensive demo script demonstrates all three software methods:
 
 ```bash
 cd code
-sbatch demo_r_analysis.slurm        # Uses conda1 (R & python environment)
-sbatch demo_python_analysis.slurm  # Uses conda2 (tricky environment)
-sbatch demo_apptainer1.slurm       # Uses apptainer1.sif (Picard container)
+sbatch demo_analysis.slurm  # Demonstrates conda1, conda2, and apptainer1
 ```
+
+This demo script showcases:
+1. **conda1 environment** - Runs R (demo_analysis.R) and Python (demo_analysis.py) analyses
+2. **conda2 environment** - Demonstrates samtools functionality
+3. **Apptainer container** - Runs Picard tools from apptainer1.sif
+
+The script clearly delineates each approach and shows how to switch between environments.
 
 ## Project Structure
 
@@ -257,7 +262,6 @@ When you deactivate or switch environments, your original `LD_LIBRARY_PATH` is a
 - **Reproducibility**: Ensures conda's libraries are used, not system libraries
 - **Prevents conflicts**: Avoids mixing conda libraries with system libraries
 - **R package compatibility**: R packages with compiled code (`.so` files) find the correct libraries
-- **CLIA compliance**: Precise control over library versions for validated environments
 
 ### Customizing Library Paths
 
@@ -383,13 +387,6 @@ These are not tracked in git but are useful for:
 - Comparing environments over time
 - Documentation
 
-## How Activation Scripts Work (Technical Details)
-
-The auto-generated `software_out/use_conda*.sh` scripts use the standard `conda activate` method, which works in all contexts including:
-- SLURM jobs
-- Interactive terminal sessions
-- Open OnDemand RStudio
-- Jupyter notebooks
 
 ### What Happens When You Source the Script
 
@@ -448,27 +445,8 @@ When you run `conda deactivate` or switch to another environment:
 
 ### Demo Scripts (code/ directory)
 
-Demo scripts match their corresponding software:
-- `demo_r_analysis.slurm` - Demonstrates conda1 (R)
-- `demo_python_analysis.slurm` - Demonstrates conda2 (Python)
-- `demo_apptainer1.slurm` - Demonstrates apptainer1.sif
+A single consolidated demo script demonstrates all software methods:
+- `demo_analysis.slurm` - Demonstrates conda1 (R & Python), conda2 (samtools), and apptainer1 (Picard)
+- `demo_analysis.R` - R analysis script (called by demo_analysis.slurm)
+- `demo_analysis.py` - Python analysis script (called by demo_analysis.slurm)
 
-### Output Directories
-
-Output directory names match their script names:
-- `code/demo_r_analysis.slurm` → `code_out/demo_r_analysis/`
-- `code/my_analysis.slurm` → `code_out/my_analysis/`
-
-## Troubleshooting
-
-**Q: Conda activation fails**
-A: Make sure you built miniforge first: `sbatch software/010_minforge.slurm`
-
-**Q: R can't find packages**
-A: Check `.libPaths()` in R. The conda1 path should be first.
-
-**Q: Apptainer can't access files**
-A: Use `--bind` to mount directories. See `code/demo_apptainer1.slurm` for examples.
-
-**Q: Want to delete and rebuild everything?**
-A: `rm -rf software_out/ .apptainer/` then rebuild from `software/` scripts.

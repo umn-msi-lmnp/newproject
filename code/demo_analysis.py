@@ -8,7 +8,7 @@ from Bio.SeqUtils import gc_fraction
 
 # Setup paths
 script_dir = Path(__file__).resolve().parent
-out_dir = script_dir.parent / "code_out" / "demo_python_analysis"
+out_dir = script_dir.parent / "code_out" / "demo_analysis"
 out_dir.mkdir(parents=True, exist_ok=True)
 
 # Sample sequence data

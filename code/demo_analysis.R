@@ -3,7 +3,7 @@
 # Setup paths
 script_dir <- dirname(normalizePath(sys.frame(1)$ofile, mustWork = FALSE))
 proj_dir <- dirname(script_dir)
-out_dir <- file.path(proj_dir, "code_out", "demo_r_analysis")
+out_dir <- file.path(proj_dir, "code_out", "demo_analysis")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 setwd(out_dir)
 
@@ -34,4 +34,3 @@ p <- ggplot(sample_data, aes(x = condition, y = expression, fill = condition)) +
 ggsave("expression_boxplot.png", p, width = 8, height = 6, dpi = 300)
 
 cat("Done! Results in:", out_dir, "\n")
-
