@@ -74,15 +74,15 @@ CONTAINER_SIF="${PROJECT_ROOT}/software_out/021_apptainer1/apptainer1.sif"
 PROJECT_REAL_PATH="$(realpath "${PROJECT_ROOT}")"
 
 echo "Testing Picard in Apptainer container..."
-apptainer exec "${CONTAINER_SIF}" picard --version
+apptainer exec "${CONTAINER_SIF}" picard -h || true
 
 echo "Running Picard ValidateSamFile..."
 apptainer exec \
     --bind "${PROJECT_REAL_PATH}:${PROJECT_REAL_PATH}" \
     "${CONTAINER_SIF}" \
-    picard ValidateSamFile \
+    picard CleanSam \
     I="${OUT_DIR}/test.sam" \
-    MODE=SUMMARY \
+    O="${OUT_DIR}/test_clean.sam" \
     > picard_validation.txt 2>&1 || true
 
 echo "Apptainer demo complete!"

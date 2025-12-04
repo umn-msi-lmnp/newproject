@@ -1,7 +1,9 @@
 #!/usr/bin/env Rscript
 
 # Setup paths
-script_dir <- dirname(normalizePath(sys.frame(1)$ofile, mustWork = FALSE))
+args <- commandArgs(trailingOnly = FALSE)
+script_path <- sub("^--file=", "", args[grep("^--file=", args)])
+script_dir <- dirname(normalizePath(script_path))
 proj_dir <- dirname(script_dir)
 out_dir <- file.path(proj_dir, "code_out", "demo_analysis")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)

@@ -194,6 +194,8 @@ sbatch demo_analysis.slurm  # Demonstrates conda1, conda2, and apptainer1
 
 This demo script showcases:
 1. **conda1 environment** - Runs R (demo_analysis.R) and Python (demo_analysis.py) analyses
+   - R script: Creates sample data, generates plots with ggplot2
+   - Python script: Simple data analysis with pandas and numpy (no BioPython needed)
 2. **conda2 environment** - Demonstrates samtools functionality
 3. **Apptainer container** - Runs Picard tools from apptainer1.sif
 
