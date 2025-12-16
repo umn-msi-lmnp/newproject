@@ -7,18 +7,28 @@
 #SBATCH --tmp=8gb
 #SBATCH --error=%x.e%j
 #SBATCH --output=%x.o%j
-#SBATCH --export=MSIPROJECT
+#SBATCH --export=NONE
 #SBATCH --mail-type=FAIL
 #SBATCH --partition=msismall
 
 set -euo pipefail
 
+# Function to reliably get script directory
+slurm_script_dir() {
+  local script_path
+  if [[ -n "${SLURM_JOB_ID-}" ]]; then
+    script_path="$(scontrol show job "$SLURM_JOB_ID" -o | sed -n 's/.*Command=\([^ ]*\).*/\1/p')"
+  else
+    script_path="${BASH_SOURCE[0]}"
+  fi
+  script_path="$(readlink -f "$script_path")"
+  dirname "$script_path"
+}
+
 # Get project root
-if [ -n "${SLURM_SUBMIT_DIR:-}" ]; then
-    PROJECT_ROOT="$(cd "${SLURM_SUBMIT_DIR}/.." && pwd)"
-else
-    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-fi
+# Since script is in PROJECT_ROOT/code/, get parent directory
+SCRIPT_DIR="$(slurm_script_dir)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Setup output directory
 OUT_DIR="${PROJECT_ROOT}/code_out/demo_analysis"
@@ -28,8 +38,9 @@ cd "${OUT_DIR}"
 echo "=========================================="
 echo "Demo 1: conda1 (R and Python)"
 echo "=========================================="
-# Activate conda1 environment (includes R and Python)
-source "${PROJECT_ROOT}/software_out/011_conda1/use_conda1.sh"
+# Initialize conda and activate conda1 environment (includes R and Python)
+source "${PROJECT_ROOT}/software_out/010_miniforge/use_miniforge.sh"
+conda activate conda1
 
 # Run R analysis
 echo "Running R analysis..."
@@ -44,7 +55,8 @@ echo "=========================================="
 echo "Demo 2: conda2 (samtools)"
 echo "=========================================="
 # Switch to conda2 environment
-source "${PROJECT_ROOT}/software_out/012_conda2/use_conda2.sh"
+conda deactivate
+conda activate conda2
 
 # Demo samtools - create a simple BAM header and validate
 echo "Testing samtools availability..."
@@ -69,6 +81,9 @@ echo "=========================================="
 # Configure Apptainer
 export APPTAINER_CACHEDIR="${PROJECT_ROOT}/.apptainer/cache"
 export APPTAINER_TMPDIR="${PROJECT_ROOT}/.apptainer/tmp"
+
+mkdir -p "${APPTAINER_CACHEDIR}"
+mkdir -p "${APPTAINER_TMPDIR}"
 
 CONTAINER_SIF="${PROJECT_ROOT}/software_out/021_apptainer1/apptainer1.sif"
 PROJECT_REAL_PATH="$(realpath "${PROJECT_ROOT}")"
