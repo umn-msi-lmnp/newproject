@@ -7,20 +7,28 @@
 #SBATCH --tmp=8gb
 #SBATCH --error=%x.e%j
 #SBATCH --output=%x.o%j
-#SBATCH --export=MSIPROJECT
+#SBATCH --export=NONE
 #SBATCH --mail-type=FAIL
 #SBATCH --partition=msismall
 
 set -euo pipefail
 
+# Function to reliably get script directory
+slurm_script_dir() {
+  local script_path
+  if [[ -n "${SLURM_JOB_ID-}" ]]; then
+    script_path="$(scontrol show job "$SLURM_JOB_ID" -o | sed -n 's/.*Command=\([^ ]*\).*/\1/p')"
+  else
+    script_path="${BASH_SOURCE[0]}"
+  fi
+  script_path="$(readlink -f "$script_path")"
+  dirname "$script_path"
+}
+
 # Get project root and setup paths
-if [ -n "${SLURM_SUBMIT_DIR:-}" ]; then
-    # Running via SLURM - use submit directory
-    PROJECT_ROOT="$(cd "${SLURM_SUBMIT_DIR}/.." && pwd)"
-else
-    # Running interactively - use script location
-    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-fi
+# Since script is in PROJECT_ROOT/software/, get parent directory
+SCRIPT_DIR="$(slurm_script_dir)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Output directory matching this script's name
 OUTPUT_DIR="${PROJECT_ROOT}/software_out/031_deepvariant"
