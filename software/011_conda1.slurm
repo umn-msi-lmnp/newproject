@@ -161,7 +161,7 @@ echo "Done! Environment ${CONDA_ENV_NAME} is ready."
 echo "Creating conda activation/deactivation scripts..."
 CONDA_ENV_PREFIX="${MINIFORGE_DIR}/envs/${CONDA_ENV_NAME}"
 
-# Detect gcc version dynamically (avoid ls, use bash globbing)
+# Detect gcc version dynamically
 GCC_LIB_PATH=""
 if [ -d "${CONDA_ENV_PREFIX}/lib/gcc/x86_64-conda-linux-gnu" ]; then
     # Directory exists, look for version subdirectory
@@ -188,8 +188,12 @@ cat > "${CONDA_ENV_PREFIX}/etc/conda/activate.d/env_vars.sh" << EOF
 export LD_LIBRARY_PATH_BACKUP="\${LD_LIBRARY_PATH:-}"
 
 # Add conda environment library paths
-# Priority order: R libs, general libs, gcc libs, then system
-export LD_LIBRARY_PATH="\${CONDA_PREFIX}/lib/R/lib:\${CONDA_PREFIX}/lib:${GCC_LIB_PATH}\${LD_LIBRARY_PATH}"
+# Priority order: R libs (if present), general libs, gcc libs (if present), then system
+if [ -d "\${CONDA_PREFIX}/lib/R/lib" ]; then
+    export LD_LIBRARY_PATH="\${CONDA_PREFIX}/lib/R/lib:\${CONDA_PREFIX}/lib:${GCC_LIB_PATH}\${LD_LIBRARY_PATH}"
+else
+    export LD_LIBRARY_PATH="\${CONDA_PREFIX}/lib:${GCC_LIB_PATH}\${LD_LIBRARY_PATH}"
+fi
 EOF
 
 chmod +x "${CONDA_ENV_PREFIX}/etc/conda/activate.d/env_vars.sh"
