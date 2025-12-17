@@ -56,9 +56,86 @@ s3cmd ls s3://BUCKET/projects/standard/GROUP/shared/ris/USER/your_project_name_Y
 | `readme.md`         | This file - project overview and documentation                                                           |
 | `HOW-TO-USE-THIS.md`| Template documentation (delete after setup or keep for reference)                                        |
 
+## Quick Start - Getting Up and Running
+
+### 1. Build Software Environments
+
+```bash
+# Build miniforge (required - provides conda)
+cd software
+sbatch 010_minforge.slurm
+
+# Wait for miniforge to complete, then build conda environments
+sbatch 011_conda1.slurm    # Main R & Python environment
+sbatch 012_conda2.slurm    # Additional environment (if needed)
+
+# Build/download containers
+sbatch 021_apptainer1.slurm  # Custom container (if needed)
+sbatch 031_deepvariant.slurm # Downloaded container (if needed)
+```
+
+**Alternative:** Run as bash scripts instead of submitting to SLURM:
+```bash
+cd software
+bash 010_minforge.slurm
+bash 011_conda1.slurm
+```
+
+### 2. Run analysis interactively on the command line
+
+```bash
+# Activate environment in your scripts
+cd code
+source ../software_out/010_miniforge/use_miniforge.sh
+conda activate conda1
+
+# Run your analysis
+Rscript my_analysis.R
+# or
+python my_analysis.py
+
+# Or submit via SLURM
+sbatch my_analysis.slurm
+```
+
+### 3. Launch analysis scripts with slurm
+
+```bash
+cd code
+bash demo_analysis.slurm  # or: sbatch demo_analysis.slurm
+```
+### 4. Start an OOD RStudio session:
+
+- Visit [https://ondemand.msi.umn.edu](https://ondemand.msi.umn.edu)
+- Start an RStudio Server Interactive session
+    - Choose MSI account
+    - Choose resources
+    - Choose R version: None (custom environment)
+    - Check the customize environment box
+    - Enter:
+
+```bash
+source /PATH/TO/YOUR/PROJECT/software_out/010_miniforge/use_miniforge.sh
+conda activate conda1 # Or whatever conda env has your R software
+```
+
+
+
 ## Software Environments
 
-This project uses self-contained, reproducible software environments built from scripts in `software/`. These may include one or more conda environments, custom built apptainer containers, or prebuilt (downloaded) apptainer containers. The goal is to isolate all software dependencies within this repo.  
+This project uses self-contained, reproducible software environments built from scripts in `software/`:
+
+- **Conda environments** (`01x` series): R, Python, and bioinformatics packages
+- **Custom containers** (`02x` series): Built from definition files
+- **Downloaded containers** (`03x` series): Pre-built from registries
+
+**Key Features:**
+- ✓ Complete isolation from home directory packages
+- ✓ Per-environment R configuration (no `~/R/` or `~/.Renviron` interference)
+- ✓ Reproducible from version-controlled build scripts
+- ✓ Can delete `software_out/` and rebuild from scratch
+
+**Built outputs go to:** `software_out/` (not in git, regenerated from `software/` scripts)
 
 
 

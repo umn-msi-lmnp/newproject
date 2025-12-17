@@ -36,11 +36,28 @@ echo "Script: ${SCRIPT_NAME}"
 # Function to reliably get script directory
 slurm_script_dir() {
   local script_path
-  if [[ -n "${SLURM_JOB_ID-}" ]]; then
-    script_path="$(scontrol show job "$SLURM_JOB_ID" -o | sed -n 's/.*Command=\([^ ]*\).*/\1/p')"
+  
+  # Only use scontrol if we're confident we're in a SLURM batch job
+  # SLURM_SUBMIT_DIR is ONLY set by sbatch, not by stale variables
+  # (Note: salloc/srun also set it, but we handle that with additional checks)
+  if [[ -n "${SLURM_SUBMIT_DIR-}" ]] && [[ -n "${SLURM_JOB_ID-}" ]] && command -v scontrol >/dev/null 2>&1; then
+    # Try to get the command from scontrol
+    script_path="$(scontrol show job "$SLURM_JOB_ID" -o 2>/dev/null | sed -n 's/.*Command=\([^ ]*\).*/\1/p')"
+    
+    # Only use scontrol result if it's a valid script file (not "bash", not empty, and exists)
+    # This filters out interactive sessions where Command=bash
+    if [[ -n "$script_path" ]] && [[ "$script_path" != "bash" ]] && [[ -f "$script_path" ]]; then
+      # scontrol returned a valid script path - likely running under sbatch
+      script_path="$script_path"
+    else
+      # scontrol returned "bash" or invalid path - running interactively or stale vars
+      script_path="${BASH_SOURCE[0]}"
+    fi
   else
+    # No SLURM vars or scontrol not available - use BASH_SOURCE
     script_path="${BASH_SOURCE[0]}"
   fi
+  
   script_path="$(readlink -f "$script_path")"
   dirname "$script_path"
 }
@@ -211,6 +228,30 @@ EOF
 chmod +x "${CONDA_ENV_PREFIX}/etc/conda/deactivate.d/env_vars.sh"
 
 echo "Conda activation/deactivation scripts created."
+
+# Create environment-specific .Renviron for R isolation
+echo "Creating environment-specific .Renviron..."
+cat > "${CONDA_ENV_PREFIX}/.Renviron" << 'EOF'
+# R Environment Configuration for Conda Environment Isolation
+# This file ensures R and reticulate stay within this conda environment
+
+# Force reticulate to use conda Python environments (not home directory virtualenvs)
+RETICULATE_AUTOCONFIGURE=0
+RETICULATE_MINICONDA_ENABLED=FALSE
+
+# Prevent Python from using user site-packages in home directory
+PYTHONNOUSERSITE=1
+EOF
+
+echo "Environment-specific .Renviron created at: ${CONDA_ENV_PREFIX}/.Renviron"
+
+# Create R_libs directory for environment-specific R packages
+mkdir -p "${CONDA_ENV_PREFIX}/R_libs"
+echo "Environment-specific R_libs directory created at: ${CONDA_ENV_PREFIX}/R_libs"
+
+# Create reticulate cache directory for this environment
+mkdir -p "${CONDA_ENV_PREFIX}/.cache/reticulate"
+echo "Environment-specific reticulate cache created at: ${CONDA_ENV_PREFIX}/.cache/reticulate"
 
 # Export environment specifications for record keeping
 echo "Exporting environment specification for record keeping..."

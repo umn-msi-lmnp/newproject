@@ -16,11 +16,28 @@ set -euo pipefail
 # Function to reliably get script directory
 slurm_script_dir() {
   local script_path
-  if [[ -n "${SLURM_JOB_ID-}" ]]; then
-    script_path="$(scontrol show job "$SLURM_JOB_ID" -o | sed -n 's/.*Command=\([^ ]*\).*/\1/p')"
+  
+  # Only use scontrol if we're confident we're in a SLURM batch job
+  # SLURM_SUBMIT_DIR is ONLY set by sbatch, not by stale variables
+  # (Note: salloc/srun also set it, but we handle that with additional checks)
+  if [[ -n "${SLURM_SUBMIT_DIR-}" ]] && [[ -n "${SLURM_JOB_ID-}" ]] && command -v scontrol >/dev/null 2>&1; then
+    # Try to get the command from scontrol
+    script_path="$(scontrol show job "$SLURM_JOB_ID" -o 2>/dev/null | sed -n 's/.*Command=\([^ ]*\).*/\1/p')"
+    
+    # Only use scontrol result if it's a valid script file (not "bash", not empty, and exists)
+    # This filters out interactive sessions where Command=bash
+    if [[ -n "$script_path" ]] && [[ "$script_path" != "bash" ]] && [[ -f "$script_path" ]]; then
+      # scontrol returned a valid script path - likely running under sbatch
+      script_path="$script_path"
+    else
+      # scontrol returned "bash" or invalid path - running interactively or stale vars
+      script_path="${BASH_SOURCE[0]}"
+    fi
   else
+    # No SLURM vars or scontrol not available - use BASH_SOURCE
     script_path="${BASH_SOURCE[0]}"
   fi
+  
   script_path="$(readlink -f "$script_path")"
   dirname "$script_path"
 }
@@ -182,7 +199,7 @@ export CONDA_USER_BASE="${MINIFORGE_DIR}"
 # !! Contents within this block are managed by 'conda init' !!
 # ---------------------------------------------------------------------
 
-__conda_setup="$('${MINIFORGE_DIR}/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+__conda_setup="$("${MINIFORGE_DIR}/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__conda_setup"
 else
@@ -219,6 +236,36 @@ export CONDA_PKGS_DIRS="${MINIFORGE_DIR}/pkgs"
 # When you activate a specific env (e.g., conda1), that env's bin will take precedence
 export PATH="${MINIFORGE_DIR}/bin:${PATH}"
 
+# ---------------------------------------------------------------------
+# Prevent Python leakage from home directory
+# ---------------------------------------------------------------------
+# Unset PYTHONPATH to prevent home directory Python packages from being imported
+unset PYTHONPATH PYTHONHOME PYTHONSTARTUP
+
+# Unset PYTHONUSERBASE to prevent ~/.local/lib/python* from being used
+unset PYTHONUSERBASE
+
+# Set Python to ignore user site-packages (prevents ~/.local/lib/python* from being used)
+export PYTHONNOUSERSITE=1
+
+# ---------------------------------------------------------------------
+# Configure R to use environment-specific directories (not home directory)
+# ---------------------------------------------------------------------
+# Note: These will be set to environment-specific paths when conda env is activated
+# For now, set them to prevent any home directory access
+export R_ENVIRON_USER="/dev/null"
+export R_PROFILE_USER="/dev/null"
+export R_LIBS_USER="${MINIFORGE_DIR}/.R_libs_base"
+export R_USER="${PROJECT_ROOT}"
+export R_CHECK_ENVIRON="FALSE"
+
+# ---------------------------------------------------------------------
+# Configure R/reticulate (will be updated per-environment on activate)
+# ---------------------------------------------------------------------
+export RETICULATE_AUTOCONFIGURE=0
+export RETICULATE_MINICONDA_ENABLED=FALSE
+export RETICULATE_PYTHON="${MINIFORGE_DIR}/bin/python"
+
 # Create a wrapper to filter conda env list output
 # This is necessary because conda reads ~/.conda/environments.txt regardless of our settings
 # We save the original conda function and wrap it carefully
@@ -226,7 +273,32 @@ _original_conda_function="$(declare -f conda)"
 eval "$(echo "${_original_conda_function}" | sed 's/conda ()/__original_conda ()/')"
 
 conda() {
-    if [ "$1" = "env" ] && [ "$2" = "list" ]; then
+    if [ "$1" = "activate" ]; then
+        # Activate the environment first
+        __original_conda "$@"
+        # After activation, update environment-specific paths
+        if [ -n "${CONDA_PREFIX}" ]; then
+            # Set Python path for reticulate
+            export RETICULATE_PYTHON="${CONDA_PREFIX}/bin/python"
+            
+            # Set R paths to be environment-specific (not home directory, not shared)
+            export R_ENVIRON_USER="${CONDA_PREFIX}/.Renviron"
+            export R_PROFILE_USER="${CONDA_PREFIX}/.Rprofile"
+            export R_LIBS_USER="${CONDA_PREFIX}/R_libs"
+            
+            # Set reticulate cache to be environment-specific
+            export RETICULATE_CACHE_DIR="${CONDA_PREFIX}/.cache/reticulate"
+        fi
+    elif [ "$1" = "deactivate" ]; then
+        # Deactivate the environment
+        __original_conda "$@"
+        # Reset to base/neutral paths
+        export RETICULATE_PYTHON="${MINIFORGE_DIR}/bin/python"
+        export R_ENVIRON_USER="/dev/null"
+        export R_PROFILE_USER="/dev/null"
+        export R_LIBS_USER="${MINIFORGE_DIR}/.R_libs_base"
+        export RETICULATE_CACHE_DIR="${MINIFORGE_DIR}/.cache/reticulate"
+    elif [ "$1" = "env" ] && [ "$2" = "list" ]; then
         # Show only header and environments in this repo
         __original_conda env list | grep "^#"
         __original_conda env list | grep -v "^#" | grep "${MINIFORGE_DIR}" || true

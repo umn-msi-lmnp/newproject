@@ -36,6 +36,8 @@ sbatch 012_conda2.slurm    # Build tricky environment
 
 Each script can also be run as a shell script: `bash 010_minforge.slurm`
 
+**Note:** All SLURM scripts in this repository use robust path detection that works correctly whether run via `sbatch` or `bash`, even if you have stale SLURM environment variables from previous jobs.
+
 ### Output Directory Structure
 
 **Key Concept:** Each build script creates a numbered output directory that matches the script name:
@@ -110,11 +112,14 @@ This script:
 - **NOT tracked in git** (in `.gitignore`), but is defined by the git tracked `software/010_miniforge.slurm` script
 - **Regenerated every time you rebuild miniforge**
 - **Initializes conda shell integration**: Enables `conda activate`, `conda deactivate`, tab completion, etc.
-- **Blocks system-level Python/conda**: Ensures complete isolation
+- **Blocks system-level Python/conda**: Ensures complete isolation from system installations
+- **Prevents home directory leakage**: Blocks Python/R packages from `~/.local`, `~/R/`, `~/.Renviron`
+- **Per-environment isolation**: Each conda environment has its own R configuration and package library
 - **Contains absolute paths**: No confusion about which miniforge to use
 
 When you build conda environments, activation hooks are created:
 - **Conda hooks** (in `${CONDA_PREFIX}/etc/conda/activate.d/` and `deactivate.d/`): Automatically manage `LD_LIBRARY_PATH`
+- **Environment-specific R configuration**: Each environment gets its own `.Renviron`, `R_libs/`, and reticulate cache
 
 ### In SLURM Scripts
 
@@ -198,12 +203,15 @@ sbatch demo_analysis.slurm  # Demonstrates conda1, conda2, and apptainer1
 
 This demo script showcases:
 1. **conda1 environment** - Runs R (demo_analysis.R) and Python (demo_analysis.py) analyses
-   - R script: Creates sample data, generates plots with ggplot2
-   - Python script: Simple data analysis with pandas and numpy (no BioPython needed)
+   - R script: 
+     - Creates sample data and generates plots with ggplot2
+     - Performs Seurat single-cell analysis with Leiden clustering (demonstrates R-Python integration via reticulate)
+     - Generates UMAP visualization of clusters
+   - Python script: Simple data analysis with pandas and numpy
 2. **conda2 environment** - Demonstrates samtools functionality
 3. **Apptainer container** - Runs Picard tools from apptainer1.sif
 
-The script clearly delineates each approach and shows how to switch between environments.
+The script clearly delineates each approach and shows how to switch between environments. The Seurat analysis demonstrates how R packages can seamlessly use Python dependencies (leiden → leidenalg) within the same conda environment.
 
 ## Project Structure
 
@@ -282,16 +290,52 @@ These are regenerated each time you rebuild the environment via `sbatch software
 
 All software is installed within this project directory. **Nothing goes to your home directory.**
 
+### Complete Isolation Strategy
+
+The template implements comprehensive isolation to ensure reproducibility:
+
+**Python Isolation:**
+- `PYTHONPATH` is unset (prevents home directory Python packages)
+- `PYTHONNOUSERSITE=1` (blocks `~/.local/lib/python*` packages)
+- All Python packages come from the conda environment only
+
+**R Isolation:**
+- Each conda environment has its own `.Renviron` in `${CONDA_PREFIX}/.Renviron`
+- User R packages go to `${CONDA_PREFIX}/R_libs/`, not `~/R/`
+- `R_ENVIRON_USER` points to environment-specific config, not `~/.Renviron`
+- No reading from `~/.Rprofile`
+
+**Reticulate Isolation (for R packages like leiden):**
+- Each conda environment has its own reticulate cache: `${CONDA_PREFIX}/.cache/reticulate/`
+- `RETICULATE_PYTHON` automatically points to the active conda environment's Python
+- R packages using Python (e.g., `leiden`) use the conda environment's Python and packages
+- No downloading of miniconda to home directory
+
+**Benefits of This Approach:**
+- **Per-environment isolation**: conda1 and conda2 don't interfere with each other
+- **No home directory contamination**: Nothing reads or writes to `~/.local`, `~/R/`, `~/.cache`
+- **Reproducible**: Same environment recreates identically regardless of what's in your home directory
+- **Switchable**: Can switch between conda1 and conda2 without conflicts
+
 ### Software Locations
 
 **R packages** (from conda1):
 ```
-software_out/010_miniforge/miniforge/envs/conda1/lib/R/library/
+software_out/010_miniforge/miniforge/envs/conda1/lib/R/library/        # Conda-installed R packages
+software_out/010_miniforge/miniforge/envs/conda1/R_libs/                # User-installed R packages (install.packages)
+software_out/010_miniforge/miniforge/envs/conda1/.Renviron              # Environment-specific R config
+```
+
+**Python packages** (from conda1 - for R packages like leiden):
+```
+software_out/010_miniforge/miniforge/envs/conda1/lib/python3.X/site-packages/
+software_out/010_miniforge/miniforge/envs/conda1/.cache/reticulate/    # Reticulate cache
 ```
 
 **Python packages** (from conda2):
 ```
 software_out/010_miniforge/miniforge/envs/conda2/lib/python3.X/site-packages/
+software_out/010_miniforge/miniforge/envs/conda2/R_libs/                # If conda2 has R
 ```
 
 **Apptainer containers:**
@@ -308,9 +352,10 @@ software_out/031_deepvariant/deepvariant.sif
 ### Benefits
 
 - **Portable**: Clone anywhere and rebuild identical environments
-- **Reproducible**: Specific package versions in YAML/definition files
+- **Reproducible**: Specific package versions in YAML/definition files, no home directory interference
 - **Self-contained**: All software in project directory, not $HOME
-- **No conflicts**: Independent of system-wide installations
+- **Per-environment isolation**: Each conda environment is completely separate
+- **No conflicts**: Independent of system-wide installations and other conda environments
 - **Deletable**: Can delete `software_out/` and rebuild from scratch
 
 ### System Dependencies
@@ -420,14 +465,76 @@ When you run `conda deactivate` or switch to another environment:
 - Your original `LD_LIBRARY_PATH` is restored
 - No leftover environment modifications
 
+## Technical Implementation Details
+
+### Robust SLURM Path Detection
+
+All SLURM scripts use a `slurm_script_dir()` function that correctly determines the script's location whether run via:
+- `sbatch script.slurm` (submitted as a SLURM batch job)
+- `bash script.slurm` (run interactively)
+- With stale `SLURM_JOB_ID` variables in your environment
+
+**How it works:**
+1. Checks if `SLURM_SUBMIT_DIR` and `SLURM_JOB_ID` are both set
+2. Queries `scontrol` to get the command path
+3. Validates that the command is a real script (not "bash") and the file exists
+4. Falls back to `${BASH_SOURCE[0]}` if any validation fails
+
+This prevents issues where old SLURM environment variables from previous jobs cause scripts to use the wrong paths.
+
+### Per-Environment Isolation
+
+When you activate a conda environment, the custom conda wrapper in `use_miniforge.sh` automatically sets:
+
+```bash
+# Set by conda activate wrapper
+export RETICULATE_PYTHON="${CONDA_PREFIX}/bin/python"
+export R_ENVIRON_USER="${CONDA_PREFIX}/.Renviron"
+export R_PROFILE_USER="${CONDA_PREFIX}/.Rprofile"
+export R_LIBS_USER="${CONDA_PREFIX}/R_libs"
+export RETICULATE_CACHE_DIR="${CONDA_PREFIX}/.cache/reticulate"
+```
+
+When you deactivate, these are reset to prevent any environment from affecting another.
+
+### R Packages with Python Dependencies (e.g., leiden)
+
+The conda1 environment includes both R and Python, allowing R packages that depend on Python to work seamlessly:
+
+**Setup in `software/011_conda1.slurm`:**
+```yaml
+dependencies:
+  - r-base=4.4.0
+  - r-seurat>=5
+  - r-leiden          # R package
+  - r-reticulate      # R-Python interface
+  - python>=3.9
+  - pip:
+    - leidenalg       # Python package needed by r-leiden
+```
+
+**Automatic configuration in R scripts:**
+```r
+# At the start of Seurat analysis
+library(reticulate)
+reticulate_python <- Sys.getenv("RETICULATE_PYTHON")
+if (reticulate_python != "") {
+    use_python(reticulate_python, required = TRUE)
+}
+```
+
+This ensures R's `leiden` package uses the conda environment's `leidenalg`, not anything from your home directory.
+
 ## Key Features
 
 - **Portable**: Uses absolute paths in generated scripts. Clone anywhere and rebuild.
-- **Reproducible**: Specific package versions in configuration files.
+- **Reproducible**: Specific package versions in configuration files, isolated from home directory.
 - **No modules needed**: Self-contained conda environments.
 - **Easy to use**: Single-line activation in scripts.
 - **Self-contained**: All software stays in project directory, not $HOME.
+- **Complete isolation**: Blocks home directory packages, per-environment R configuration.
 - **Automatic library management**: `LD_LIBRARY_PATH` is set/restored automatically on activate/deactivate.
+- **Robust path detection**: Scripts work correctly with or without SLURM, even with stale environment variables.
 - **OOD-compatible**: Works seamlessly with Open OnDemand RStudio.
 - **Three methods**: Conda, custom containers, or downloaded containers.
 
