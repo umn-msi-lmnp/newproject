@@ -81,42 +81,38 @@ bash 010_minforge.slurm
 bash 011_conda1.slurm
 ```
 
-### 2. Run analysis interactively on the command line
+### 2. Work on an analysis interactively via the command line
 
 ```bash
-# Activate environment in your scripts
+# Navigate to your project's code dir
 cd code
 source ../software_out/010_miniforge/use_miniforge.sh
 conda activate conda1
 
-# Run your analysis
-Rscript my_analysis.R
-# or
-python my_analysis.py
-
-# Or submit via SLURM
-sbatch my_analysis.slurm
+# Start your analysis (e.g. via R, or python)
+R
+python
 ```
 
-### 3. Launch analysis scripts with slurm
+### 3. Launch analysis scripts using slurm
 
 ```bash
 cd code
-bash demo_analysis.slurm  # or: sbatch demo_analysis.slurm
+sbatch demo_analysis.slurm
 ```
-### 4. Start an OOD RStudio session:
+### 4. Start an Open OnDemand RStudio session:
 
 - Visit [https://ondemand.msi.umn.edu](https://ondemand.msi.umn.edu)
 - Start an RStudio Server Interactive session
     - Choose MSI account
     - Choose resources
-    - Choose R version: None (custom environment)
-    - Check the customize environment box
-    - Enter:
+    - Choose R version: None (Custom Environment Provided)
+    - Check the Customize Environment box
+    - Enter the following into the Custom Environment text box, and then click Launch.
 
 ```bash
 source /PATH/TO/YOUR/PROJECT/software_out/010_miniforge/use_miniforge.sh
-conda activate conda1 # Or whatever conda env has your R software
+conda activate conda1 # (or whatever conda env name has your R software)
 ```
 
 

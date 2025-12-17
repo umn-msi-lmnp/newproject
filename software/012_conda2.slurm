@@ -193,9 +193,9 @@ export LD_LIBRARY_PATH_BACKUP="\${LD_LIBRARY_PATH:-}"
 # Add conda environment library paths
 # Priority order: R libs (if present), general libs, gcc libs (if present), then system
 if [ -d "\${CONDA_PREFIX}/lib/R/lib" ]; then
-    export LD_LIBRARY_PATH="\${CONDA_PREFIX}/lib/R/lib:\${CONDA_PREFIX}/lib:${GCC_LIB_PATH}\${LD_LIBRARY_PATH}"
+    export LD_LIBRARY_PATH="\${CONDA_PREFIX}/lib/R/lib:\${CONDA_PREFIX}/lib:${GCC_LIB_PATH}\${LD_LIBRARY_PATH:-}"
 else
-    export LD_LIBRARY_PATH="\${CONDA_PREFIX}/lib:${GCC_LIB_PATH}\${LD_LIBRARY_PATH}"
+    export LD_LIBRARY_PATH="\${CONDA_PREFIX}/lib:${GCC_LIB_PATH}\${LD_LIBRARY_PATH:-}"
 fi
 EOF
 
