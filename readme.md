@@ -1,5 +1,7 @@
 # Project Title
 
+> **This is a template repo.** Customize this README for your specific project. See `HOW-TO-USE-THIS.md` for setup instructions.
+
 > Replace this with your actual project title. Include enough detail that someone can understand what this project is about.
 
 ## Introduction
@@ -58,6 +60,8 @@ s3cmd ls s3://BUCKET/projects/standard/GROUP/shared/ris/USER/your_project_name_Y
 
 ## Quick Start - Getting Up and Running
 
+> **Note:** Software environments must be built before running analyses. See `HOW-TO-USE-THIS.md` for detailed setup instructions.
+
 ### 1. Build Software Environments
 
 ```bash
@@ -67,11 +71,11 @@ sbatch 010_minforge.slurm
 
 # Wait for miniforge to complete, then build conda environments
 sbatch 011_conda1.slurm    # Main R & Python environment
-sbatch 012_conda2.slurm    # Additional environment (if needed)
+sbatch 012_conda2.slurm    # Secondary environment (if needed)
 
-# Build/download containers
-sbatch 021_apptainer1.slurm  # Custom container (if needed)
-sbatch 031_deepvariant.slurm # Downloaded container (if needed)
+# Build/download containers (optional)
+sbatch 021_apptainer1.slurm  # Custom container
+sbatch 031_deepvariant.slurm # Downloaded container
 ```
 
 **Alternative:** Run as bash scripts instead of submitting to SLURM:
@@ -86,6 +90,8 @@ bash 011_conda1.slurm
 ```bash
 # Navigate to your project's code dir
 cd code
+
+# You must source this script to activate the conda/miniforge installation
 source ../software_out/010_miniforge/use_miniforge.sh
 conda activate conda1
 
@@ -100,7 +106,7 @@ python
 cd code
 sbatch demo_analysis.slurm
 ```
-### 4. Start an Open OnDemand RStudio session:
+### 4. Start an Open OnDemand RStudio session
 
 - Visit [https://ondemand.msi.umn.edu](https://ondemand.msi.umn.edu)
 - Start an RStudio Server Interactive session
@@ -108,11 +114,11 @@ sbatch demo_analysis.slurm
     - Choose resources
     - Choose R version: None (Custom Environment Provided)
     - Check the Customize Environment box
-    - Enter the following into the Custom Environment text box, and then click Launch.
+    - Enter the following into the Custom Environment text box (replace with your actual project path), and then click Launch.
 
 ```bash
-source /PATH/TO/YOUR/PROJECT/software_out/010_miniforge/use_miniforge.sh
-conda activate conda1 # (or whatever conda env name has your R software)
+source /projects/standard/GROUP/shared/ris/USER/PROJECT_NAME/software_out/010_miniforge/use_miniforge.sh
+conda activate conda1
 ```
 
 
@@ -126,18 +132,46 @@ This project uses self-contained, reproducible software environments built from 
 - **Downloaded containers** (`03x` series): Pre-built from registries
 
 **Key Features:**
-- ✓ Complete isolation from home directory packages
-- ✓ Per-environment R configuration (no `~/R/` or `~/.Renviron` interference)
-- ✓ Reproducible from version-controlled build scripts
-- ✓ Can delete `software_out/` and rebuild from scratch
+- Complete isolation from home directory packages
+- Per-environment R configuration (no `~/R/` or `~/.Renviron` interference)
+- Reproducible from version-controlled build scripts
+- Can delete `software_out/` and rebuild from scratch
+- Auto-detecting PROJECT_ROOT paths (manual override available if needed)
 
-**Built outputs go to:** `software_out/` (not in git, regenerated from `software/` scripts)
+**Built outputs:** `software_out/` (not in git, regenerated from `software/` scripts)
+
+See `HOW-TO-USE-THIS.md` for detailed documentation.
 
 
 
 ## Results
 
 > Briefly describe the analyses performed in this project. Link to specific scripts or outputs. Alternatively, link to a Google Doc or other files used to track progress. Describe where results/reports can be found (Google Docs, output directories, generated HTML reports, etc.)
+
+## Troubleshooting
+
+### Scripts fail with path errors
+
+All scripts auto-detect PROJECT_ROOT. If auto-detection fails, manually set PROJECT_ROOT:
+
+```bash
+# Add this line after the slurm_script_dir() function in any script
+PROJECT_ROOT="/full/path/to/your/project"
+```
+
+### Environment rebuild issues
+
+To rebuild an environment cleanly, simply re-run the build script:
+```bash
+sbatch software/011_conda1.slurm
+```
+
+This automatically:
+- Renames the old output directory with a timestamp suffix
+- Deletes and rebuilds the conda environment from scratch
+- Creates fresh activation hooks and configuration files
+
+See `HOW-TO-USE-THIS.md` for more details.
 
 ## Changelog
 

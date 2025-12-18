@@ -31,7 +31,7 @@ git init
 cd software
 sbatch 010_minforge.slurm  # Build miniforge (required for conda)
 sbatch 011_conda1.slurm    # Build main conda (R & python) environment
-sbatch 012_conda2.slurm    # Build tricky environment
+sbatch 012_conda2.slurm    # Build secondary environment
 ```
 
 Each script can also be run as a shell script: `bash 010_minforge.slurm`
@@ -46,7 +46,13 @@ Each script can also be run as a shell script: `bash 010_minforge.slurm`
 - `software/021_apptainer1.slurm` → `software_out/021_apptainer1/`
 - `software/031_deepvariant.slurm` → `software_out/031_deepvariant/`
 
-This makes it crystal clear which script built what output. You can delete the entire `software_out/` directory and rebuild everything from scratch using the scripts in `software/`.
+**Important distinction:**
+- `software_out/011_conda1/` contains **metadata** (environment exports, logs)
+- `software_out/010_miniforge/miniforge/envs/conda1/` contains the **actual conda environment**
+
+Both directories are managed together when you rebuild.
+
+You can delete the entire `software_out/` directory and rebuild everything from scratch using the scripts in `software/`.
 
 ## Three Methods for Installing Software
 
@@ -59,16 +65,17 @@ Build custom conda environments from YAML specifications.
 ```bash
 sbatch 010_minforge.slurm  # Build miniforge (local conda installer)
 sbatch 011_conda1.slurm    # Build main (R & python) environment (tidyverse, ggplot2, etc.)
-sbatch 012_conda2.slurm    # Build tricky environment (old version of tools or conflicts with conda1, etc.)
+sbatch 012_conda2.slurm    # Build secondary environment (additional tools, version conflicts, etc.)
 ```
 
 **When to use:**
-- Use `conda1` as your main conda env. This should include as much software as possible.
-- Create additional conda envs, as needed (e.g. if you cannot include everything into one env.)
+- Use `conda1` as your main conda environment. This should include as much software as possible.
+- Create additional conda environments as needed (e.g., for tools that conflict with conda1, require different versions, or for logical separation of tool sets)
 
-**Configuration files:**
-- `software/conda1.yml` - Main environment (R & python) specification
-- `software/conda2.yml` - Tricky environment specification
+**Configuration:**
+- Environment specifications are defined via heredoc within each build script
+- Edit the heredoc section in `software/011_conda1.slurm` to modify the main environment
+- Edit the heredoc section in `software/012_conda2.slurm` to modify the secondary environment
 - `software_out/010_miniforge/use_miniforge.sh` - Auto-generated activation script (created by 010_miniforge.slurm)
 
 ### Method 2: Build Custom Apptainer Containers (02x series)
@@ -219,12 +226,10 @@ The script clearly delineates each approach and shows how to switch between envi
 my_project_name/
   software/                  Build scripts for environments
     010_minforge.slurm       # Method 1: Build conda (required first)
-    011_conda1.slurm         # Method 1: Build R conda environment
-    012_conda2.slurm         # Method 1: Build Python conda environment
+    011_conda1.slurm         # Method 1: Build R conda environment (env spec in heredoc)
+    012_conda2.slurm         # Method 1: Build Python conda environment (env spec in heredoc)
     021_apptainer1.slurm     # Method 2: Build custom container
     031_deepvariant.slurm    # Method 3: Download prebuilt container
-    conda1.yml               # R environment specification
-    conda2.yml               # Python environment specification
     apptainer1.def           # Picard container definition
   
   software_out/              Built software (NOT in git)
@@ -367,24 +372,40 @@ Everything else (conda, mamba, R, Python, all packages) is installed locally.
 
 ## Modifying Environments
 
+### Rebuilding Environments
+
+When you re-run a conda build script (e.g., `sbatch software/011_conda1.slurm`), it automatically:
+
+1. **Renames the output directory**: `software_out/011_conda1/` → `software_out/011_conda1_DELETE_THIS_20251217-143022`
+2. **Deletes the conda environment**: Removes `010_miniforge/miniforge/envs/conda1/`
+3. **Rebuilds from scratch**: Creates a fresh environment with updated packages
+4. **Regenerates metadata**: New activation hooks, .Renviron, and export files
+
+The renamed directory (with `_DELETE_THIS_` suffix) can be safely deleted after verifying the new build works.
+
+**Same behavior applies to:**
+- `010_minforge.slurm` (renames `010_miniforge/`, reinstalls miniforge)
+- `021_apptainer1.slurm` (renames `021_apptainer1/`, rebuilds container)
+- All other software build scripts
+
 ### Adding R Packages to conda1
 
-1. Edit `software/conda1.yml`
-2. Add packages under `dependencies:`
+1. Edit the heredoc section in `software/011_conda1.slurm`
+2. Add packages under `dependencies:` in the YAML heredoc
 3. Rebuild: `sbatch software/011_conda1.slurm`
 
 ### Adding Python Packages to conda2
 
-1. Edit `software/conda2.yml`
-2. Add packages under `dependencies:`
+1. Edit the heredoc section in `software/012_conda2.slurm`
+2. Add packages under `dependencies:` in the YAML heredoc
 3. Rebuild: `sbatch software/012_conda2.slurm`
 
 ### Adding pip Packages to conda1 (R environment)
 
 conda1 includes Python for R packages that need it (e.g., `r-leiden` needs `leidenalg`).
 
-1. Edit `software/conda1.yml`
-2. Add to the `pip:` section:
+1. Edit the heredoc section in `software/011_conda1.slurm`
+2. Add to the `pip:` section in the YAML heredoc:
    ```yaml
    dependencies:
      - r-leiden
@@ -401,7 +422,7 @@ conda1 includes Python for R packages that need it (e.g., `r-leiden` needs `leid
 - No separate venv needed
 - pip installs to conda1's isolated site-packages
 - Everything stays within the project
-- Fully reproducible from conda1.yml
+- Fully reproducible from the build script's heredoc specification
 
 ### Modifying Containers
 
@@ -427,7 +448,7 @@ After building each conda environment, two export files are automatically create
 
 2. **History export** (`env_export_from_history.yml`):
    - Only explicitly requested packages
-   - Matches your conda1.yml or conda2.yml
+   - Matches the heredoc specification in the build script
    - Cross-platform
    - Use to understand intent
 
@@ -465,13 +486,13 @@ When you run `conda deactivate` or switch to another environment:
 - Your original `LD_LIBRARY_PATH` is restored
 - No leftover environment modifications
 
-## Technical Implementation Details
+## Advanced Topics
 
 ### Robust SLURM Path Detection
 
 All SLURM scripts use a `slurm_script_dir()` function that correctly determines the script's location whether run via:
 - `sbatch script.slurm` (submitted as a SLURM batch job)
-- `bash script.slurm` (run interactively)
+- `bash script.slurm` (run interactively as a shell script)
 - With stale `SLURM_JOB_ID` variables in your environment
 
 **How it works:**
@@ -481,6 +502,17 @@ All SLURM scripts use a `slurm_script_dir()` function that correctly determines 
 4. Falls back to `${BASH_SOURCE[0]}` if any validation fails
 
 This prevents issues where old SLURM environment variables from previous jobs cause scripts to use the wrong paths.
+
+### Manual PROJECT_ROOT Override
+
+By default, all SLURM scripts auto-detect PROJECT_ROOT using the `slurm_script_dir()` function. However, if auto-detection fails or you need to override it, you can manually set PROJECT_ROOT by adding this line at the top of any script (after the `slurm_script_dir()` function definition):
+
+```bash
+# Override auto-detection if needed
+PROJECT_ROOT="/projects/standard/lmnp/knut0297/my_project"
+```
+
+This works for all scripts in `software/` and `code/` directories. The auto-detected value will be replaced with your hardcoded path.
 
 ### Per-Environment Isolation
 
@@ -524,6 +556,59 @@ if (reticulate_python != "") {
 ```
 
 This ensures R's `leiden` package uses the conda environment's `leidenalg`, not anything from your home directory.
+
+## Troubleshooting
+
+### Scripts fail with path errors
+
+All scripts auto-detect PROJECT_ROOT using the `slurm_script_dir()` function. If auto-detection fails:
+
+1. Verify the `slurm_script_dir()` function is present in the script
+2. Manually set PROJECT_ROOT (see "Manual PROJECT_ROOT Override" in Advanced Topics)
+3. Check that you're running the script from the correct location
+
+### Environment rebuild doesn't remove old packages
+
+The build scripts automatically delete and rebuild conda environments. If this doesn't happen:
+
+1. Check the build log for errors (`.e` and `.o` files in the software directory)
+2. Verify the environment exists: `conda env list`
+3. Manually remove if needed: `conda env remove -n conda1`
+4. Re-run the build script
+
+### Open OnDemand RStudio fails to start
+
+Common issues and solutions:
+
+1. **Miniforge not built**: Verify `software_out/010_miniforge/use_miniforge.sh` exists
+2. **Conda environment not built**: Check `ls software_out/010_miniforge/miniforge/envs/conda1`
+3. **Wrong path**: Use absolute path in Custom Environment box (not relative)
+4. **Environment variables**: Check RStudio job logs for error messages
+
+To verify environment in RStudio:
+```r
+.libPaths()                    # Should show conda1 path first
+Sys.getenv("CONDA_PREFIX")     # Should show conda1 environment path
+Sys.getenv("LD_LIBRARY_PATH")  # Should show conda1 library paths first
+```
+
+### Packages fail to load or wrong versions used
+
+This usually indicates home directory interference:
+
+1. Check for `~/.Renviron` or `~/.Rprofile` that might override settings
+2. Verify `R_ENVIRON_USER` points to conda environment: `Sys.getenv("R_ENVIRON_USER")`
+3. Check Python isolation: `python -c "import sys; print(sys.path)"`
+4. Rebuild the environment to regenerate all isolation settings
+
+### Container builds fail
+
+For Apptainer containers:
+
+1. Verify Apptainer is available: `apptainer --version`
+2. Check cache directories exist and have space: `ls .apptainer/cache`
+3. Review the container definition file syntax
+4. Check the build log for specific errors
 
 ## Key Features
 

@@ -8,6 +8,7 @@ input/*
 # Ignore slurm logs
 *.slurm.e*
 *.slurm.o*
+slurm-*.out
 
 # Ignore built software (reproducibly installed, don't track)
 software_out/
