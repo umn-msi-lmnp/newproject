@@ -329,8 +329,15 @@ printf "mamba create -n MYNAME MYTOOL    # Create a new env, using the faster 'm
 printf "Available environments:\n"
 conda env list | grep -v "^#" | tail -n +2 || printf "  No environments created yet\n"
 printf "\nQuick start:\n"
-printf "conda activate conda1  # Activate the main R & Python environment\n"
-printf "conda activate conda2  # Activate the secondary environment\n"
+# Dynamically show first two available environments, or generic message if none exist
+ENV_LIST=$(conda env list | grep -v "^#" | grep "${MINIFORGE_DIR}/envs/" | awk '{print $1}' | head -2)
+if [ -n "$ENV_LIST" ]; then
+    while IFS= read -r env_name; do
+        [ -n "$env_name" ] && printf "  conda activate %s\n" "$env_name"
+    done <<< "$ENV_LIST"
+else
+    printf "  conda activate <env_name>  # Replace <env_name> with your environment name\n"
+fi
 printf "%s\n\n" "----------------------------------"
 ACTIVATION_SCRIPT
 
