@@ -54,9 +54,9 @@ Both directories are managed together when you rebuild.
 
 You can delete the entire `software_out/` directory and rebuild everything from scratch using the scripts in `software/`.
 
-## Three Methods for Installing Software
+## Four Methods for Installing Software
 
-This template demonstrates three methods for managing software dependencies:
+This template demonstrates four methods for managing software dependencies:
 
 ### Method 1: Conda Environments (01x series)
 
@@ -108,6 +108,30 @@ sbatch 031_deepvariant.slurm  # Download DeepVariant from Docker Hub
 - You want to use the "official" version of a tool
 - You need to quickly get started without building
 
+### Method 4: Simple Tools (04x series)
+
+Install simple tools (tarballs, git repos, compiled binaries) that don't require conda or containers.
+
+```bash
+sbatch 041_mytools.slurm  # Install simple tools (e.g., cephtools)
+```
+
+**When to use:**
+- Tools distributed as pre-compiled tarballs or binaries
+- Simple git repositories with ready-to-use scripts
+- Tools that need basic compilation (./configure && make)
+- Lightweight utilities that don't warrant a full conda environment or container
+
+**Configuration:**
+- Edit `software/041_mytools.slurm` to add/remove tools
+- Each tool has a simple installation section in the script
+- `software_out/041_mytools/use_mytools.sh` - Auto-generated activation script (adds all tools to PATH)
+
+**How it works:**
+- Downloads and extracts tools to `software_out/041_mytools/`
+- Generates `use_mytools.sh` that adds all tool bin directories to PATH
+- Activate with: `source software_out/041_mytools/use_mytools.sh`
+
 ## Using the Environments
 
 ### Simplified Workflow: One Script to Rule Them All
@@ -152,6 +176,12 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTAINER_SIF="${PROJECT_ROOT}/software_out/021_apptainer1/apptainer1.sif"
 PROJECT_REAL_PATH="$(realpath "${PROJECT_ROOT}")"
 apptainer exec --bind "${PROJECT_REAL_PATH}:${PROJECT_REAL_PATH}" "${CONTAINER_SIF}" picard <command>
+```
+
+**For simple tools:**
+```bash
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${PROJECT_ROOT}/software_out/041_mytools/use_mytools.sh"
 ```
 
 **Switching between conda environments:**
@@ -230,6 +260,7 @@ my_project_name/
     012_conda2.slurm         # Method 1: Build Python conda environment (env spec in heredoc)
     021_apptainer1.slurm     # Method 2: Build custom container
     031_deepvariant.slurm    # Method 3: Download prebuilt container
+    041_mytools.slurm        # Method 4: Install simple tools (tarballs, git repos, binaries)
     apptainer1.def           # Picard container definition
   
   software_out/              Built software (NOT in git)
@@ -248,6 +279,10 @@ my_project_name/
       apptainer1.sif         # Custom-built Picard container
     031_deepvariant/         # Output from 031_deepvariant.slurm
       deepvariant.sif        # Downloaded DeepVariant container
+    041_mytools/             # Output from 041_mytools.slurm
+      use_mytools.sh         # Auto-generated activation script
+      cephtools-3.11.0/      # Example: cephtools installation
+        bin/
   
   .apptainer/                Apptainer build cache (NOT in git)
     cache/
@@ -641,7 +676,7 @@ For Apptainer containers:
 - **Automatic library management**: `LD_LIBRARY_PATH` is set/restored automatically on activate/deactivate.
 - **Robust path detection**: Scripts work correctly with or without SLURM, even with stale environment variables.
 - **OOD-compatible**: Works seamlessly with Open OnDemand RStudio.
-- **Three methods**: Conda, custom containers, or downloaded containers.
+- **Four methods**: Conda, custom containers, downloaded containers, or simple tools.
 
 ## Naming Conventions
 
@@ -659,6 +694,10 @@ For Apptainer containers:
 - **03x**: Downloaded containers (from registries)
   - `031_deepvariant.slurm` - Download container 1
   - `032_another.slurm` - Download container 2
+
+- **04x**: Simple tools (tarballs, git repos, binaries)
+  - `041_mytools.slurm` - Install simple tools (cephtools, etc.)
+  - `042_another_mytools.slurm` - Additional simple tools (if needed)
 
 ### Demo Scripts (code/ directory)
 
