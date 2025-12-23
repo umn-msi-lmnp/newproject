@@ -60,7 +60,7 @@ s3cmd ls s3://BUCKET/projects/standard/GROUP/shared/ris/USER/your_project_name_Y
 | `changelog.md`      | Chronological log of project changes, notes, to-dos                                                      |
 | `.apptainer/`       | Apptainer build cache (not in git, could be deleted, not required)                                       |
 | `AGENTS.md`         | Guidelines and conventions for AI agents working on this repository                                      |
-| `GETTING_STARTED.md`| Template documentation (delete after setup or keep for reference)                                        |
+| `GETTING_STARTED.md`| Template documentation (keep for reference)                                                              |
 
 ## Quick Start - Getting Up and Running
 

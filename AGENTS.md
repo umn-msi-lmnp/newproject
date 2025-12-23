@@ -21,10 +21,11 @@ This file contains guidelines and conventions for agents working on this reposit
 
 This repository contains:
 - `code/`: Analysis scripts that are version controlled
-- `code_out/`: Each code script generates a corresponding dir in the code_out dir. 
+- `code_out/`: Each code script generates a corresponding dir in the code_out dir
 - `software/`: Build scripts and environment configurations
 - `software_build/`: Generated software environments that could be deleted and recreated if necessary
 - Configuration files for SLURM, conda, and Apptainer
+- `GETTING_STARTED.md`: Contains full project structure documentation
 
 ## Testing
 
