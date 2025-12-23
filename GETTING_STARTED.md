@@ -561,15 +561,35 @@ This ensures R's `leiden` package uses the conda environment's `leidenalg`, not 
 
 ### Scripts fail with path errors
 
-All scripts auto-detect PROJECT_ROOT using the `slurm_script_dir()` function. If auto-detection fails:
+All scripts auto-detect PROJECT_ROOT using the `slurm_script_dir()` function. If auto-detection fails, manually set PROJECT_ROOT:
+
+```bash
+# Add this line after the slurm_script_dir() function in any script
+PROJECT_ROOT="/full/path/to/your/project"
+```
+
+Additional troubleshooting:
 
 1. Verify the `slurm_script_dir()` function is present in the script
-2. Manually set PROJECT_ROOT (see "Manual PROJECT_ROOT Override" in Advanced Topics)
+2. See "Manual PROJECT_ROOT Override" in Advanced Topics for more details
 3. Check that you're running the script from the correct location
 
-### Environment rebuild doesn't remove old packages
+### Environment rebuild issues
 
-The build scripts automatically delete and rebuild conda environments. If this doesn't happen:
+To rebuild an environment cleanly, simply re-run the build script:
+
+```bash
+sbatch software/011_conda1.slurm
+```
+
+This automatically:
+- Renames the old output directory with a timestamp suffix (e.g., `011_conda1_DELETE_THIS_20251217-143022`)
+- Deletes and rebuilds the conda environment from scratch
+- Creates fresh activation hooks and configuration files
+
+The renamed directory with `_DELETE_THIS_` suffix can be safely deleted after verifying the new build works.
+
+If the rebuild doesn't work as expected:
 
 1. Check the build log for errors (`.e` and `.o` files in the software directory)
 2. Verify the environment exists: `conda env list`
