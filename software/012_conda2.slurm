@@ -124,7 +124,7 @@ export CONDA_ROOT="${MINIFORGE_DIR}"
 export CONDA_USER_BASE="${MINIFORGE_DIR}"
 
 # Activate miniforge (initialize conda in this build script)
-source "${MINIFORGE_DIR}/bin/activate"
+source "${PROJECT_ROOT}/software_out/010_miniforge/use_miniforge.sh"
 
 # Check if environment already exists (avoid grep due to set -e)
 ENV_EXISTS=0
@@ -225,5 +225,4 @@ echo ""
 echo "Done! All ${CONDA_ENV_NAME} outputs are in ${OUTPUT_DIR}/"
 echo ""
 echo "To use this environment:"
-echo "  source ${PROJECT_ROOT}/software_out/010_miniforge/use_miniforge.sh"
-echo "  conda activate ${CONDA_ENV_NAME}"
+echo "  source activate ${CONDA_ENV_NAME}"
