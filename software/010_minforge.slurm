@@ -300,8 +300,11 @@ conda() {
         export RETICULATE_CACHE_DIR="${MINIFORGE_DIR}/.cache/reticulate"
     elif [ "$1" = "env" ] && [ "$2" = "list" ]; then
         # Show only header and environments in this repo
-        __original_conda env list | grep "^#"
-        __original_conda env list | grep -v "^#" | grep "${MINIFORGE_DIR}" || true
+        __original_conda env list | awk '$1 ~ /^#/ { print }'
+        __original_conda env list | awk -v root="${MINIFORGE_DIR}" '
+            $1 ~ /^#/ { next }
+            index($NF, root) { print }
+        '
     else
         # Pass through all other conda commands to the original function
         __original_conda "$@"
@@ -327,10 +330,22 @@ printf "conda activate ENV               # Activate an env by name\n"
 printf "conda deactivate                 # Deactivate your current conda env\n"
 printf "mamba create -n MYNAME MYTOOL    # Create a new env, using the faster 'mamba' solver\n\n"
 printf "Available environments:\n"
-conda env list | grep -v "^#" | tail -n +2 || printf "  No environments created yet\n"
+available_envs="$(conda env list | awk '
+    $1 ~ /^#/ { next }
+    ++count == 1 { next }
+    { print }
+')"
+if [ -n "$available_envs" ]; then
+    printf "%s\n" "$available_envs"
+else
+    printf "  No environments created yet\n"
+fi
 printf "\nQuick start:\n"
 # Dynamically show first two available environments, or generic message if none exist
-ENV_LIST=$(conda env list | grep -v "^#" | grep "${MINIFORGE_DIR}/envs/" | awk '{print $1}' | head -2)
+ENV_LIST="$(conda env list | awk -v root="${MINIFORGE_DIR}/envs/" '
+    $1 ~ /^#/ { next }
+    index($NF, root) { print $1 }
+' | head -2)"
 if [ -n "$ENV_LIST" ]; then
     while IFS= read -r env_name; do
         [ -n "$env_name" ] && printf "  conda activate %s\n" "$env_name"

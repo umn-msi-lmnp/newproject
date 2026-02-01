@@ -106,22 +106,7 @@ echo "Environment YAML saved to: ${ENV_FILE}"
 
 # ---------------------------------------------------------------------
 # Set up complete isolation from HOME directory conda
-# (Same isolation approach as use_miniforge.sh)
 # ---------------------------------------------------------------------
-
-# Override ALL conda configuration paths
-export CONDA_ENVS_DIRS="${MINIFORGE_DIR}/envs"
-export CONDA_PKGS_DIRS="${MINIFORGE_DIR}/pkgs"
-
-# Force conda to use project-local .condarc only
-export CONDARC="${MINIFORGE_DIR}/.condarc"
-
-# Set SSL certificate path for conda
-export CONDA_SSL_VERIFY="${MINIFORGE_DIR}/ssl/cacert.pem"
-
-# Prevent conda from tracking envs in ~/.conda/environments.txt
-export CONDA_ROOT="${MINIFORGE_DIR}"
-export CONDA_USER_BASE="${MINIFORGE_DIR}"
 
 # Activate miniforge (initialize conda in this build script)
 source "${PROJECT_ROOT}/software_out/010_miniforge/use_miniforge.sh"
