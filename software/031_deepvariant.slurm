@@ -42,17 +42,22 @@ slurm_script_dir() {
   dirname "$script_path"
 }
 
-# Get project root and setup paths
-# Since script is in PROJECT_ROOT/software/, get parent directory
+# ---------------------------------------------------------------------
+# Primary configurable paths
+# ---------------------------------------------------------------------
+# Get project root (source code directory)
 SCRIPT_DIR="$(slurm_script_dir)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Output directory matching this script's name
-OUTPUT_DIR="${PROJECT_ROOT}/software_out/031_deepvariant"
+# Software output directory (override this single line to change build location)
+SOFTWARE_OUT="${PROJECT_ROOT}/software_out"
 
-# Configure Apptainer to use project-local cache (not $HOME/.apptainer)
-export APPTAINER_CACHEDIR="${PROJECT_ROOT}/.apptainer/cache"
-export APPTAINER_TMPDIR="${PROJECT_ROOT}/.apptainer/tmp"
+# Derived paths (do not edit these)
+OUTPUT_DIR="${SOFTWARE_OUT}/031_deepvariant"
+
+# Configure Apptainer to use software output cache (not $HOME/.apptainer)
+export APPTAINER_CACHEDIR="${SOFTWARE_OUT}/.apptainer/cache"
+export APPTAINER_TMPDIR="${SOFTWARE_OUT}/.apptainer/tmp"
 
 # DeepVariant version and Docker image
 DEEPVARIANT_VERSION="1.6.1"
@@ -66,7 +71,7 @@ echo "Using project cache: ${APPTAINER_CACHEDIR}"
 # Rename existing output directory if it exists
 if [ -d "${OUTPUT_DIR}" ]; then
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-    OLD_DIR="${PROJECT_ROOT}/software_out/031_deepvariant_DELETE_THIS_${TIMESTAMP}"
+    OLD_DIR="${SOFTWARE_OUT}/031_deepvariant_DELETE_THIS_${TIMESTAMP}"
     echo "Existing output directory found. Renaming to: 031_deepvariant_DELETE_THIS_${TIMESTAMP}"
     mv "${OUTPUT_DIR}" "${OLD_DIR}"
 fi

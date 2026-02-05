@@ -42,20 +42,23 @@ slurm_script_dir() {
   dirname "$script_path"
 }
 
-# Get project root and setup paths
-# Since script is in PROJECT_ROOT/software/, get parent directory
+# ---------------------------------------------------------------------
+# Primary configurable paths
+# ---------------------------------------------------------------------
+# Get project root (source code directory)
 SCRIPT_DIR="$(slurm_script_dir)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Output directory matching this script's name
-OUTPUT_DIR="${PROJECT_ROOT}/software_out/021_apptainer1"
+# Software output directory (override this single line to change build location)
+SOFTWARE_OUT="${PROJECT_ROOT}/software_out"
 
-# Input files
+# Derived paths (do not edit these)
+OUTPUT_DIR="${SOFTWARE_OUT}/021_apptainer1"
 DEF_FILE="${PROJECT_ROOT}/software/apptainer1.def"
 
-# Configure Apptainer to use project-local cache (not $HOME/.apptainer)
-export APPTAINER_CACHEDIR="${PROJECT_ROOT}/.apptainer/cache"
-export APPTAINER_TMPDIR="${PROJECT_ROOT}/.apptainer/tmp"
+# Configure Apptainer to use software output cache (not $HOME/.apptainer)
+export APPTAINER_CACHEDIR="${SOFTWARE_OUT}/.apptainer/cache"
+export APPTAINER_TMPDIR="${SOFTWARE_OUT}/.apptainer/tmp"
 
 echo "Building Apptainer container: apptainer1.sif"
 echo "Using project cache: ${APPTAINER_CACHEDIR}"
@@ -63,7 +66,7 @@ echo "Using project cache: ${APPTAINER_CACHEDIR}"
 # Rename existing output directory if it exists
 if [ -d "${OUTPUT_DIR}" ]; then
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-    OLD_DIR="${PROJECT_ROOT}/software_out/021_apptainer1_DELETE_THIS_${TIMESTAMP}"
+    OLD_DIR="${SOFTWARE_OUT}/021_apptainer1_DELETE_THIS_${TIMESTAMP}"
     echo "Existing output directory found. Renaming to: 021_apptainer1_DELETE_THIS_${TIMESTAMP}"
     mv "${OUTPUT_DIR}" "${OLD_DIR}"
 fi

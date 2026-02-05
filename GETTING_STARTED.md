@@ -283,10 +283,9 @@ my_project_name/
       use_mytools.sh         # Auto-generated activation script
       cephtools-3.11.0/      # Example: cephtools installation
         bin/
-  
-  .apptainer/                Apptainer build cache (NOT in git)
-    cache/
-    tmp/
+    .apptainer/              # Apptainer build cache (under SOFTWARE_OUT)
+      cache/
+      tmp/
   
   code/                      Your analysis scripts (in git)
   code_out/                  Analysis outputs (NOT in git, reproducible)
@@ -386,7 +385,7 @@ software_out/031_deepvariant/deepvariant.sif
 
 **Apptainer cache:**
 ```
-.apptainer/cache/
+software_out/.apptainer/cache/
 ```
 
 ### Benefits
@@ -538,16 +537,45 @@ All SLURM scripts use a `slurm_script_dir()` function that correctly determines 
 
 This prevents issues where old SLURM environment variables from previous jobs cause scripts to use the wrong paths.
 
-### Manual PROJECT_ROOT Override
+### Configurable Build Paths
 
-By default, all SLURM scripts auto-detect PROJECT_ROOT using the `slurm_script_dir()` function. However, if auto-detection fails or you need to override it, you can manually set PROJECT_ROOT by adding this line at the top of any script (after the `slurm_script_dir()` function definition):
+All build scripts in `software/` have two primary configurable paths clearly marked at the top:
+
+1. **PROJECT_ROOT**: Auto-detected source code directory (where the git repo lives)
+2. **SOFTWARE_OUT**: Build output directory (default: `${PROJECT_ROOT}/software_out`)
+
+**To change the build output location**, edit the single `SOFTWARE_OUT` line in any build script:
 
 ```bash
-# Override auto-detection if needed
-PROJECT_ROOT="/projects/standard/lmnp/knut0297/my_project"
+# ---------------------------------------------------------------------
+# Primary configurable paths
+# ---------------------------------------------------------------------
+# Get project root (source code directory)
+SCRIPT_DIR="$(slurm_script_dir)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Software output directory (override this single line to change build location)
+SOFTWARE_OUT="${PROJECT_ROOT}/software_out"  # <-- Edit this line
 ```
 
-This works for all scripts in `software/` and `code/` directories. The auto-detected value will be replaced with your hardcoded path.
+**Example: Build to a different location**
+
+```bash
+# Build to scratch space instead of project directory
+SOFTWARE_OUT="/scratch.global/username/myproject_builds"
+```
+
+When you override `SOFTWARE_OUT`, all derived paths automatically update:
+- Miniforge installation: `${SOFTWARE_OUT}/010_miniforge/miniforge`
+- Conda environments: `${SOFTWARE_OUT}/010_miniforge/miniforge/envs/`
+- Containers: `${SOFTWARE_OUT}/021_apptainer1/apptainer1.sif`
+- Apptainer cache: `${SOFTWARE_OUT}/.apptainer/cache`
+- Tool installations: `${SOFTWARE_OUT}/041_mytools/`
+
+**Important notes:**
+- You must edit `SOFTWARE_OUT` in **each** build script you want to use the alternate location
+- Activation scripts embed absolute paths at build time, so they'll point to wherever you built
+- To revert to default, simply set `SOFTWARE_OUT="${PROJECT_ROOT}/software_out"`
 
 ### Per-Environment Isolation
 

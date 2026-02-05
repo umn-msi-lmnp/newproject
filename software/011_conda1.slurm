@@ -62,16 +62,19 @@ slurm_script_dir() {
   dirname "$script_path"
 }
 
-# Get project root and setup paths
-# Since script is in PROJECT_ROOT/software/, get parent directory
+# ---------------------------------------------------------------------
+# Primary configurable paths
+# ---------------------------------------------------------------------
+# Get project root (source code directory)
 SCRIPT_DIR="$(slurm_script_dir)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Path to miniforge (installed by 010_miniforge.slurm)
-MINIFORGE_DIR="${PROJECT_ROOT}/software_out/010_miniforge/miniforge"
+# Software output directory (override this single line to change build location)
+SOFTWARE_OUT="${PROJECT_ROOT}/software_out"
 
-# Output directory matching this script's base name (NNN_envname)
-OUTPUT_DIR="${PROJECT_ROOT}/software_out/${SCRIPT_BASE}"
+# Derived paths (do not edit these)
+MINIFORGE_DIR="${SOFTWARE_OUT}/010_miniforge/miniforge"
+OUTPUT_DIR="${SOFTWARE_OUT}/${SCRIPT_BASE}"
 
 # Environment file will be generated in the output directory
 ENV_FILE="${OUTPUT_DIR}/environment.yml"
@@ -79,7 +82,7 @@ ENV_FILE="${OUTPUT_DIR}/environment.yml"
 # Rename existing output directory if it exists
 if [ -d "${OUTPUT_DIR}" ]; then
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-    OLD_DIR="${PROJECT_ROOT}/software_out/${SCRIPT_BASE}_DELETE_THIS_${TIMESTAMP}"
+    OLD_DIR="${SOFTWARE_OUT}/${SCRIPT_BASE}_DELETE_THIS_${TIMESTAMP}"
     echo "Existing output directory found. Renaming to: ${SCRIPT_BASE}_DELETE_THIS_${TIMESTAMP}"
     mv "${OUTPUT_DIR}" "${OLD_DIR}"
 fi
@@ -123,7 +126,7 @@ echo "Environment YAML saved to: ${ENV_FILE}"
 # ---------------------------------------------------------------------
 
 # Activate miniforge (initialize conda in this build script)
-source "${PROJECT_ROOT}/software_out/010_miniforge/use_miniforge.sh"
+source "${SOFTWARE_OUT}/010_miniforge/use_miniforge.sh"
 
 # Check if environment already exists (avoid grep due to set -e)
 ENV_EXISTS=0

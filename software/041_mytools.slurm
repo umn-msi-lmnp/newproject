@@ -33,19 +33,25 @@ slurm_script_dir() {
   dirname "$script_path"
 }
 
-# Get project root and setup paths
+# ---------------------------------------------------------------------
+# Primary configurable paths
+# ---------------------------------------------------------------------
+# Get project root (source code directory)
 SCRIPT_DIR="$(slurm_script_dir)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Output directory matching this script's name
-OUTPUT_DIR="${PROJECT_ROOT}/software_out/041_mytools"
+# Software output directory (override this single line to change build location)
+SOFTWARE_OUT="${PROJECT_ROOT}/software_out"
+
+# Derived paths (do not edit these)
+OUTPUT_DIR="${SOFTWARE_OUT}/041_mytools"
 
 echo "Installing simple tools to ${OUTPUT_DIR}"
 
 # Rename existing output directory if it exists
 if [ -d "${OUTPUT_DIR}" ]; then
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-    OLD_DIR="${PROJECT_ROOT}/software_out/041_mytools_DELETE_THIS_${TIMESTAMP}"
+    OLD_DIR="${SOFTWARE_OUT}/041_mytools_DELETE_THIS_${TIMESTAMP}"
     echo "Existing output directory found. Renaming to: 041_mytools_DELETE_THIS_${TIMESTAMP}"
     mv "${OUTPUT_DIR}" "${OLD_DIR}"
 fi
@@ -113,7 +119,8 @@ fi
 
 # Absolute paths (generated at build time)
 PROJECT_ROOT="${PROJECT_ROOT}"
-MYTOOLS_DIR="\${PROJECT_ROOT}/software_out/041_mytools"
+SOFTWARE_OUT="${SOFTWARE_OUT}"
+MYTOOLS_DIR="\${SOFTWARE_OUT}/041_mytools"
 
 # ---------------------------------------------------------------------
 # Add tool paths to PATH

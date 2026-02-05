@@ -42,13 +42,18 @@ slurm_script_dir() {
   dirname "$script_path"
 }
 
-# Get project root and setup paths
-# Since script is in PROJECT_ROOT/software/, get parent directory
+# ---------------------------------------------------------------------
+# Primary configurable paths
+# ---------------------------------------------------------------------
+# Get project root (source code directory)
 SCRIPT_DIR="$(slurm_script_dir)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Output directory matching this script's name
-OUTPUT_DIR="${PROJECT_ROOT}/software_out/010_miniforge"
+# Software output directory (override this single line to change build location)
+SOFTWARE_OUT="${PROJECT_ROOT}/software_out"
+
+# Derived paths (do not edit these)
+OUTPUT_DIR="${SOFTWARE_OUT}/010_miniforge"
 INSTALL_DIR="${OUTPUT_DIR}/miniforge"
 MINIFORGE_VERSION="24.7.1-0"
 
@@ -57,7 +62,7 @@ echo "Installing Miniforge to ${INSTALL_DIR}"
 # Rename existing output directory if it exists
 if [ -d "${OUTPUT_DIR}" ]; then
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-    OLD_DIR="${PROJECT_ROOT}/software_out/010_miniforge_DELETE_THIS_${TIMESTAMP}"
+    OLD_DIR="${SOFTWARE_OUT}/010_miniforge_DELETE_THIS_${TIMESTAMP}"
     echo "Existing output directory found. Renaming to: 010_miniforge_DELETE_THIS_${TIMESTAMP}"
     mv "${OUTPUT_DIR}" "${OLD_DIR}"
 fi
@@ -161,7 +166,8 @@ fi
 
 # Absolute paths (generated at build time)
 PROJECT_ROOT="PROJECT_ROOT_PLACEHOLDER"
-MINIFORGE_DIR="${PROJECT_ROOT}/software_out/010_miniforge/miniforge"
+SOFTWARE_OUT="SOFTWARE_OUT_PLACEHOLDER"
+MINIFORGE_DIR="${SOFTWARE_OUT}/010_miniforge/miniforge"
 
 # ---------------------------------------------------------------------
 # Block system-level conda/python to ensure isolation
@@ -356,8 +362,9 @@ fi
 printf "%s\n\n" "----------------------------------"
 ACTIVATION_SCRIPT
 
-# Replace placeholder with actual project root
+# Replace placeholders with actual paths
 sed -i "s|PROJECT_ROOT_PLACEHOLDER|${PROJECT_ROOT}|g" "${OUTPUT_DIR}/use_miniforge.sh"
+sed -i "s|SOFTWARE_OUT_PLACEHOLDER|${SOFTWARE_OUT}|g" "${OUTPUT_DIR}/use_miniforge.sh"
 
 chmod +x "${OUTPUT_DIR}/use_miniforge.sh"
 echo "Activation script created at: ${OUTPUT_DIR}/use_miniforge.sh"
