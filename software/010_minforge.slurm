@@ -165,7 +165,6 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 fi
 
 # Absolute paths (generated at build time)
-PROJECT_ROOT="PROJECT_ROOT_PLACEHOLDER"
 SOFTWARE_OUT="SOFTWARE_OUT_PLACEHOLDER"
 MINIFORGE_DIR="${SOFTWARE_OUT}/010_miniforge/miniforge"
 
@@ -262,7 +261,7 @@ export PYTHONNOUSERSITE=1
 export R_ENVIRON_USER="/dev/null"
 export R_PROFILE_USER="/dev/null"
 export R_LIBS_USER="${MINIFORGE_DIR}/.R_libs_base"
-export R_USER="${PROJECT_ROOT}"
+export R_USER="${SOFTWARE_OUT}"
 export R_CHECK_ENVIRON="FALSE"
 
 # ---------------------------------------------------------------------
@@ -321,7 +320,6 @@ conda() {
 printf "\n"
 printf "%s\n" "----------------------------------"
 printf "PLEASE NOTE: This shell has been configured to run conda (and mamba).\n\n"
-printf "Project root: %s\n" "${PROJECT_ROOT}"
 printf "Miniforge installation: %s\n\n" "${MINIFORGE_DIR}"
 printf "Python/conda status:\n"
 printf "  python, mamba, conda commands are now available (from miniforge base)\n"
@@ -363,7 +361,6 @@ printf "%s\n\n" "----------------------------------"
 ACTIVATION_SCRIPT
 
 # Replace placeholders with actual paths
-sed -i "s|PROJECT_ROOT_PLACEHOLDER|${PROJECT_ROOT}|g" "${OUTPUT_DIR}/use_miniforge.sh"
 sed -i "s|SOFTWARE_OUT_PLACEHOLDER|${SOFTWARE_OUT}|g" "${OUTPUT_DIR}/use_miniforge.sh"
 
 chmod +x "${OUTPUT_DIR}/use_miniforge.sh"

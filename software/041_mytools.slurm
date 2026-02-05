@@ -118,7 +118,6 @@ if [ "\${BASH_SOURCE[0]}" = "\${0}" ]; then
 fi
 
 # Absolute paths (generated at build time)
-PROJECT_ROOT="${PROJECT_ROOT}"
 SOFTWARE_OUT="${SOFTWARE_OUT}"
 MYTOOLS_DIR="\${SOFTWARE_OUT}/041_mytools"
 
@@ -147,7 +146,6 @@ export PATH="\${MYTOOLS_DIR}/cephtools-${CEPHTOOLS_VERSION}/bin:\${PATH}"
 printf "\n"
 printf "%s\n" "----------------------------------"
 printf "Simple tools activated!\n\n"
-printf "Project root: %s\n" "\${PROJECT_ROOT}"
 printf "Tools directory: %s\n\n" "\${MYTOOLS_DIR}"
 printf "Tools added to PATH:\n"
 printf "  - cephtools ${CEPHTOOLS_VERSION}\n"
