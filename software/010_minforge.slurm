@@ -279,8 +279,23 @@ eval "$(echo "${_original_conda_function}" | sed 's/conda ()/__original_conda ()
 
 conda() {
     if [ "$1" = "activate" ]; then
+        local nounset_was_on=0
+        local conda_status=0
+        case "$-" in
+            *u*)
+                nounset_was_on=1
+                set +u
+                ;;
+        esac
         # Activate the environment first
         __original_conda "$@"
+        conda_status=$?
+        if [ "$nounset_was_on" -eq 1 ]; then
+            set -u
+        fi
+        if [ "$conda_status" -ne 0 ]; then
+            return "$conda_status"
+        fi
         # After activation, update environment-specific paths
         if [ -n "${CONDA_PREFIX}" ]; then
             # Set Python path for reticulate
@@ -295,8 +310,23 @@ conda() {
             export RETICULATE_CACHE_DIR="${CONDA_PREFIX}/.cache/reticulate"
         fi
     elif [ "$1" = "deactivate" ]; then
+        local nounset_was_on=0
+        local conda_status=0
+        case "$-" in
+            *u*)
+                nounset_was_on=1
+                set +u
+                ;;
+        esac
         # Deactivate the environment
         __original_conda "$@"
+        conda_status=$?
+        if [ "$nounset_was_on" -eq 1 ]; then
+            set -u
+        fi
+        if [ "$conda_status" -ne 0 ]; then
+            return "$conda_status"
+        fi
         # Reset to base/neutral paths
         export RETICULATE_PYTHON="${MINIFORGE_DIR}/bin/python"
         export R_ENVIRON_USER="/dev/null"
