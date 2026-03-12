@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
@@ -14,59 +14,52 @@
 set -euo pipefail
 
 # ---------------------------------------------------------------------
+# Function to reliably get script path
+# ---------------------------------------------------------------------
+slurm_script_path() {
+    local script_path
+
+    # Only use scontrol if we're confident we're in a SLURM batch job
+    # SLURM_SUBMIT_DIR is ONLY set by sbatch, not by stale variables
+    # (Note: salloc/srun also set it, but we handle that with additional checks)
+    if [[ -n "${SLURM_SUBMIT_DIR-}" ]] && [[ -n "${SLURM_JOB_ID-}" ]] && command -v scontrol >/dev/null 2>&1; then
+        # Try to get the command from scontrol
+        script_path="$(scontrol show job "$SLURM_JOB_ID" -o 2>/dev/null | sed -n 's/.*Command=\([^ ]*\).*/\1/p')"
+
+        # Only use scontrol result if it's a valid script file (not "bash", not empty, and exists)
+        # This filters out interactive sessions where Command=bash
+        if [[ -n "$script_path" ]] && [[ "$script_path" != "bash" ]] && [[ -f "$script_path" ]]; then
+            script_path="$script_path"
+        else
+            script_path="${BASH_SOURCE[0]}"
+        fi
+    else
+        # No SLURM vars or scontrol not available - use BASH_SOURCE
+        script_path="${BASH_SOURCE[0]}"
+    fi
+
+    script_path="$(readlink -f "$script_path")"
+    printf "%s\n" "$script_path"
+}
+
+# ---------------------------------------------------------------------
 # Extract conda environment name from script filename
 # ---------------------------------------------------------------------
 # Script name format: NNN_envname.slurm -> envname
 # Examples: 012_conda2.slurm -> conda2, 015_my_env.slurm -> my_env
-
-# When running via SLURM, use SLURM_JOB_NAME (contains original script name)
-# When running interactively, use BASH_SOURCE[0]
-if [ -n "${SLURM_JOB_ID:-}" ] && [ -n "${SLURM_JOB_NAME:-}" ]; then
-    SCRIPT_NAME="${SLURM_JOB_NAME}"
-else
-    SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
-fi
-
-SCRIPT_BASE="${SCRIPT_NAME%.slurm}"           # Remove .slurm extension
-CONDA_ENV_NAME="${SCRIPT_BASE#[0-9][0-9][0-9]_}"  # Remove NNN_ prefix
+SCRIPT_PATH="$(slurm_script_path)"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+SCRIPT_NAME="$(basename "$SCRIPT_PATH")"
+SCRIPT_BASE="${SCRIPT_NAME%.slurm}"
+CONDA_ENV_NAME="${SCRIPT_BASE#[0-9][0-9][0-9]_}"
 
 echo "Building conda environment: ${CONDA_ENV_NAME}"
 echo "Script: ${SCRIPT_NAME}"
-
-# Function to reliably get script directory
-slurm_script_dir() {
-  local script_path
-  
-  # Only use scontrol if we're confident we're in a SLURM batch job
-  # SLURM_SUBMIT_DIR is ONLY set by sbatch, not by stale variables
-  # (Note: salloc/srun also set it, but we handle that with additional checks)
-  if [[ -n "${SLURM_SUBMIT_DIR-}" ]] && [[ -n "${SLURM_JOB_ID-}" ]] && command -v scontrol >/dev/null 2>&1; then
-    # Try to get the command from scontrol
-    script_path="$(scontrol show job "$SLURM_JOB_ID" -o 2>/dev/null | sed -n 's/.*Command=\([^ ]*\).*/\1/p')"
-    
-    # Only use scontrol result if it's a valid script file (not "bash", not empty, and exists)
-    # This filters out interactive sessions where Command=bash
-    if [[ -n "$script_path" ]] && [[ "$script_path" != "bash" ]] && [[ -f "$script_path" ]]; then
-      # scontrol returned a valid script path - likely running under sbatch
-      script_path="$script_path"
-    else
-      # scontrol returned "bash" or invalid path - running interactively or stale vars
-      script_path="${BASH_SOURCE[0]}"
-    fi
-  else
-    # No SLURM vars or scontrol not available - use BASH_SOURCE
-    script_path="${BASH_SOURCE[0]}"
-  fi
-  
-  script_path="$(readlink -f "$script_path")"
-  dirname "$script_path"
-}
 
 # ---------------------------------------------------------------------
 # Primary configurable paths
 # ---------------------------------------------------------------------
 # Get project root (source code directory)
-SCRIPT_DIR="$(slurm_script_dir)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Software output directory (override this single line to change build location)
@@ -74,6 +67,7 @@ SOFTWARE_OUT="${PROJECT_ROOT}/software_out"
 
 # Derived paths (do not edit these)
 MINIFORGE_DIR="${SOFTWARE_OUT}/010_miniforge/miniforge"
+MINIFORGE_ACTIVATE_SCRIPT="${SOFTWARE_OUT}/010_miniforge/use_miniforge.sh"
 OUTPUT_DIR="${SOFTWARE_OUT}/${SCRIPT_BASE}"
 
 # Environment file will be generated in the output directory
@@ -111,8 +105,31 @@ echo "Environment YAML saved to: ${ENV_FILE}"
 # Set up complete isolation from HOME directory conda
 # ---------------------------------------------------------------------
 
+# Preflight checks for miniforge prerequisites
+if [ ! -d "${MINIFORGE_DIR}" ]; then
+    echo "ERROR: Miniforge directory not found: ${MINIFORGE_DIR}"
+    echo "Run software/010_miniforge.slurm first."
+    exit 1
+fi
+
+if [ ! -f "${MINIFORGE_ACTIVATE_SCRIPT}" ]; then
+    echo "ERROR: Miniforge activation script not found: ${MINIFORGE_ACTIVATE_SCRIPT}"
+    echo "Run software/010_miniforge.slurm first."
+    exit 1
+fi
+
 # Activate miniforge (initialize conda in this build script)
-source "${SOFTWARE_OUT}/010_miniforge/use_miniforge.sh"
+source "${MINIFORGE_ACTIVATE_SCRIPT}"
+
+if ! command -v conda >/dev/null 2>&1; then
+    echo "ERROR: conda command not available after sourcing miniforge activation script."
+    exit 1
+fi
+
+if ! command -v mamba >/dev/null 2>&1; then
+    echo "ERROR: mamba command not available after sourcing miniforge activation script."
+    exit 1
+fi
 
 # Check if environment already exists (avoid grep due to set -e)
 ENV_EXISTS=0
@@ -195,7 +212,7 @@ cat > "${CONDA_ENV_PREFIX}/etc/conda/deactivate.d/env_vars.sh" << 'EOF'
 #!/bin/sh
 
 # Restore the original LD_LIBRARY_PATH
-export LD_LIBRARY_PATH="${LD_LIBRARY_PATH_BACKUP}"
+export LD_LIBRARY_PATH="${LD_LIBRARY_PATH_BACKUP:-}"
 unset LD_LIBRARY_PATH_BACKUP
 EOF
 
@@ -213,4 +230,4 @@ echo ""
 echo "Done! All ${CONDA_ENV_NAME} outputs are in ${OUTPUT_DIR}/"
 echo ""
 echo "To use this environment:"
-echo "  source activate ${CONDA_ENV_NAME}"
+echo "  conda activate ${CONDA_ENV_NAME}"

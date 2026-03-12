@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
@@ -11,92 +11,115 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --partition=msismall
 
+# ---------------------------------------------------------------------
+# Version (set by make software)
+# ---------------------------------------------------------------------
+SEMANTIC_VERSION=
+GIT_CURRENT_BRANCH=
+GIT_LATEST_COMMIT=
+GIT_LATEST_COMMIT_SHORT=
+GIT_LATEST_COMMIT_DIRTY=
+GIT_LATEST_COMMIT_DATETIME=
+GIT_REMOTE=
+GIT_WEB_URL=
+GIT_LATEST_COMMIT_LINK=
+VERSION_SHORT=
+
+echo "SEMANTIC_VERSION=${SEMANTIC_VERSION}"
+
 set -euo pipefail
 
-# Function to reliably get script directory
-slurm_script_dir() {
-  local script_path
-  
-  # Only use scontrol if we're confident we're in a SLURM batch job
-  # SLURM_SUBMIT_DIR is ONLY set by sbatch, not by stale variables
-  # (Note: salloc/srun also set it, but we handle that with additional checks)
-  if [[ -n "${SLURM_SUBMIT_DIR-}" ]] && [[ -n "${SLURM_JOB_ID-}" ]] && command -v scontrol >/dev/null 2>&1; then
-    # Try to get the command from scontrol
-    script_path="$(scontrol show job "$SLURM_JOB_ID" -o 2>/dev/null | sed -n 's/.*Command=\([^ ]*\).*/\1/p')"
-    
-    # Only use scontrol result if it's a valid script file (not "bash", not empty, and exists)
-    # This filters out interactive sessions where Command=bash
-    if [[ -n "$script_path" ]] && [[ "$script_path" != "bash" ]] && [[ -f "$script_path" ]]; then
-      # scontrol returned a valid script path - likely running under sbatch
-      script_path="$script_path"
+# Set umask to write new files with 660 (rw-rw----) and dirs with 770 (rwxrwx---)
+umask 007
+printf "umask set to '%s', which is symbolically represented as '%s'\n" $(umask) $(umask -S)
+
+# Function to reliably get script path
+slurm_script_path() {
+    local script_path
+
+    # Only use scontrol if we're confident we're in a SLURM batch job
+    # SLURM_SUBMIT_DIR is ONLY set by sbatch, not by stale variables
+    # (Note: salloc/srun also set it, but we handle that with additional checks)
+    if [[ -n "${SLURM_SUBMIT_DIR-}" ]] && [[ -n "${SLURM_JOB_ID-}" ]] && command -v scontrol >/dev/null 2>&1; then
+        # Try to get the command from scontrol
+        script_path="$(scontrol show job "$SLURM_JOB_ID" -o 2>/dev/null | sed -n 's/.*Command=\([^ ]*\).*/\1/p')"
+
+        # Only use scontrol result if it's a valid script file (not "bash", not empty, and exists)
+        # This filters out interactive sessions where Command=bash
+        if [[ -n "$script_path" ]] && [[ "$script_path" != "bash" ]] && [[ -f "$script_path" ]]; then
+            # scontrol returned a valid script path - likely running under sbatch
+            script_path="$script_path"
+        else
+            # scontrol returned "bash" or invalid path - running interactively or stale vars
+            script_path="${BASH_SOURCE[0]}"
+        fi
     else
-      # scontrol returned "bash" or invalid path - running interactively or stale vars
-      script_path="${BASH_SOURCE[0]}"
+        # No SLURM vars or scontrol not available - use BASH_SOURCE
+        script_path="${BASH_SOURCE[0]}"
     fi
-  else
-    # No SLURM vars or scontrol not available - use BASH_SOURCE
-    script_path="${BASH_SOURCE[0]}"
-  fi
-  
-  script_path="$(readlink -f "$script_path")"
-  dirname "$script_path"
+
+    script_path="$(readlink -f "$script_path")"
+    printf "%s\n" "$script_path"
 }
 
 # ---------------------------------------------------------------------
-# Primary configurable paths
+# Dynamic script-based paths
 # ---------------------------------------------------------------------
-# Get project root (source code directory)
-SCRIPT_DIR="$(slurm_script_dir)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-
-# Software output directory (override this single line to change build location)
-SOFTWARE_OUT="${PROJECT_ROOT}/software_out"
+SCRIPT_PATH="$(slurm_script_path)"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+SCRIPT_DIR_NAME="$(basename "$SCRIPT_DIR")"
+PARENT_DIR="$(dirname "$SCRIPT_DIR")"
+SCRIPT_NAME="$(basename "$SCRIPT_PATH")"
+SCRIPT_BASE="${SCRIPT_NAME%.slurm}"
 
 # Derived paths (do not edit these)
-OUTPUT_DIR="${SOFTWARE_OUT}/010_miniforge"
+OUTPUT_ROOT="${PARENT_DIR}/${SCRIPT_DIR_NAME}_out"
+OUTPUT_DIR="${OUTPUT_ROOT}/${SCRIPT_BASE}"
 INSTALL_DIR="${OUTPUT_DIR}/miniforge"
-MINIFORGE_VERSION="24.7.1-0"
+MINIFORGE_VERSION="${MINIFORGE_VERSION:-24.7.1-0}"
 
+echo "Script: ${SCRIPT_NAME}"
 echo "Installing Miniforge to ${INSTALL_DIR}"
 
 # Rename existing output directory if it exists
 if [ -d "${OUTPUT_DIR}" ]; then
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-    OLD_DIR="${SOFTWARE_OUT}/010_miniforge_DELETE_THIS_${TIMESTAMP}"
-    echo "Existing output directory found. Renaming to: 010_miniforge_DELETE_THIS_${TIMESTAMP}"
+    OLD_DIR="${OUTPUT_ROOT}/${SCRIPT_BASE}_DELETE_THIS_${TIMESTAMP}"
+    echo "Existing output directory found. Renaming to: ${SCRIPT_BASE}_DELETE_THIS_${TIMESTAMP}"
     mv "${OUTPUT_DIR}" "${OLD_DIR}"
 fi
 
 # Create output directory
+mkdir -p "${OUTPUT_ROOT}"
 mkdir -p "${OUTPUT_DIR}"
+cd "${OUTPUT_DIR}"
 
 # Download and install if not already present
 if [ ! -d "${INSTALL_DIR}" ]; then
-    cd "${OUTPUT_DIR}"
-    
+
     echo "Downloading Miniforge..."
     INSTALLER="Miniforge3-${MINIFORGE_VERSION}-Linux-x86_64.sh"
     wget -q "https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE_VERSION}/${INSTALLER}"
-    
+
     # ---------------------------------------------------------------------
     # Remove the check on free disk space
     # ---------------------------------------------------------------------
     # panasas does not report the correct values when using the "df" command, and miniforge uses this
-    # command to determine if there is enough space to install the tool. It errors out if it fails 
+    # command to determine if there is enough space to install the tool. It errors out if it fails
     # this check. Therefore, we remove this check.
     echo "Modifying installer to remove disk space check..."
     INSTALLER_MODIFIED="${INSTALLER%.sh}_modified.sh"
     sed '/^if \[ "$free_disk_space_kb_with_buffer"/,/^fi/ s/^/#/' "${INSTALLER}" >"${INSTALLER_MODIFIED}"
-    
+
     # ---------------------------------------------------------------------
     # Run the installer
     # ---------------------------------------------------------------------
     echo "Installing Miniforge..."
     bash --login "${INSTALLER_MODIFIED}" -b -p "${INSTALL_DIR}"
-    
+
     echo "Cleaning up installer..."
     rm "${INSTALLER}" "${INSTALLER_MODIFIED}"
-    
+
     echo "Configuring conda to use project-local paths only..."
     cat > "${INSTALL_DIR}/.condarc" << CONDARC
 channels:
@@ -108,7 +131,7 @@ envs_dirs:
 pkgs_dirs:
   - ${INSTALL_DIR}/pkgs
 CONDARC
-    
+
     echo "Miniforge installed successfully!"
 else
     echo "Miniforge already installed at ${INSTALL_DIR}"
@@ -125,9 +148,9 @@ touch "${INSTALL_DIR}/.conda/environments.txt"
 
 echo "Generating activation script..."
 cat > "${OUTPUT_DIR}/use_miniforge.sh" << 'ACTIVATION_SCRIPT'
-#!/bin/env bash
+#!/usr/bin/env bash
 # Auto-generated activation script for miniforge
-# Generated by: software/010_miniforge.slurm
+# Generated by: miniforge build script
 # DO NOT EDIT MANUALLY - will be regenerated when miniforge is rebuilt
 #
 # PLEASE NOTE:
@@ -164,9 +187,11 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
     exit 1
 fi
 
-# Absolute paths (generated at build time)
-SOFTWARE_OUT="SOFTWARE_OUT_PLACEHOLDER"
-MINIFORGE_DIR="${SOFTWARE_OUT}/010_miniforge/miniforge"
+# Derive paths from this activation script location
+ACTIVATION_SCRIPT_PATH="${BASH_SOURCE[0]}"
+ACTIVATION_DIR="$(cd -- "$(dirname -- "${ACTIVATION_SCRIPT_PATH}")" && pwd -P)"
+MINIFORGE_DIR="${ACTIVATION_DIR}/miniforge"
+SOFTWARE_OUT="$(dirname "${ACTIVATION_DIR}")"
 
 # ---------------------------------------------------------------------
 # Block system-level conda/python to ensure isolation
@@ -204,25 +229,29 @@ export CONDA_USER_BASE="${MINIFORGE_DIR}"
 # !! Contents within this block are managed by 'conda init' !!
 # ---------------------------------------------------------------------
 
-__conda_setup="$("${MINIFORGE_DIR}/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "${MINIFORGE_DIR}/etc/profile.d/conda.sh" ]; then
-        . "${MINIFORGE_DIR}/etc/profile.d/conda.sh"
-    else
-        export PATH="${MINIFORGE_DIR}/bin:$PATH"
-    fi
-fi
-unset __conda_setup
+
+# Make miniforge base tools available immediately
+# Add miniforge bin to PATH so python, mamba, etc. are immediately available
+# if the conda init step needs them.
+case ":${PATH}:" in
+    *":${MINIFORGE_DIR}/bin:"*) ;;
+    *) export PATH="${MINIFORGE_DIR}/bin:${PATH}" ;;
+esac
+
+ if __conda_setup="$("${MINIFORGE_DIR}/bin/conda" shell.bash hook 2>&1)"; then
+     eval "$__conda_setup"
+ else
+     printf 'conda hook failed:\n%s\n' "$__conda_setup" >&2
+     if [ -f "${MINIFORGE_DIR}/etc/profile.d/conda.sh" ]; then
+         . "${MINIFORGE_DIR}/etc/profile.d/conda.sh"
+     fi
+ fi
+ unset __conda_setup
 
 if [ -f "${MINIFORGE_DIR}/etc/profile.d/mamba.sh" ]; then
     . "${MINIFORGE_DIR}/etc/profile.d/mamba.sh"
 fi
 
-# ---------------------------------------------------------------------
-# <<< conda initialize <<<
-# ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
 # Force complete isolation from HOME directory conda after initialization
@@ -237,9 +266,15 @@ export CONDA_PKGS_DIRS="${MINIFORGE_DIR}/pkgs"
 # Make miniforge base tools available immediately
 # ---------------------------------------------------------------------
 # Add miniforge bin to PATH so python, mamba, etc. are immediately available
+# even if you do not activate a base or other env. For example, after sourcing
+# this script, "python" will be from inside your miniforge install dir.
+# This is another defense approach to force PATH to use miniforge before anything else.
 # This does NOT activate the base environment, just makes tools accessible
 # When you activate a specific env (e.g., conda1), that env's bin will take precedence
-export PATH="${MINIFORGE_DIR}/bin:${PATH}"
+case ":${PATH}:" in
+    *":${MINIFORGE_DIR}/bin:"*) ;;
+    *) export PATH="${MINIFORGE_DIR}/bin:${PATH}" ;;
+esac
 
 # ---------------------------------------------------------------------
 # Prevent Python leakage from home directory
@@ -300,12 +335,12 @@ conda() {
         if [ -n "${CONDA_PREFIX}" ]; then
             # Set Python path for reticulate
             export RETICULATE_PYTHON="${CONDA_PREFIX}/bin/python"
-            
+
             # Set R paths to be environment-specific (not home directory, not shared)
             export R_ENVIRON_USER="${CONDA_PREFIX}/.Renviron"
             export R_PROFILE_USER="${CONDA_PREFIX}/.Rprofile"
             export R_LIBS_USER="${CONDA_PREFIX}/R_libs"
-            
+
             # Set reticulate cache to be environment-specific
             export RETICULATE_CACHE_DIR="${CONDA_PREFIX}/.cache/reticulate"
         fi
@@ -355,7 +390,7 @@ printf "Python/conda status:\n"
 printf "  python, mamba, conda commands are now available (from miniforge base)\n"
 printf "  No conda environment is active yet (CONDA_PREFIX is not set)\n"
 printf "  To get environment-specific packages, activate an environment:\n"
-printf "    conda activate conda1  # or conda2\n\n"
+printf "    conda activate <env_name>\n\n"
 printf "To stop using this version of these tools, exit the shell:\n"
 printf "exit\n\n"
 printf "Useful commands:\n"
@@ -389,9 +424,6 @@ else
 fi
 printf "%s\n\n" "----------------------------------"
 ACTIVATION_SCRIPT
-
-# Replace placeholders with actual paths
-sed -i "s|SOFTWARE_OUT_PLACEHOLDER|${SOFTWARE_OUT}|g" "${OUTPUT_DIR}/use_miniforge.sh"
 
 chmod +x "${OUTPUT_DIR}/use_miniforge.sh"
 echo "Activation script created at: ${OUTPUT_DIR}/use_miniforge.sh"
