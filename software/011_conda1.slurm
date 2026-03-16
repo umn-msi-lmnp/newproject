@@ -91,24 +91,26 @@ echo "Generating environment.yml for ${CONDA_ENV_NAME}..."
 cat > "${ENV_FILE}" << EOF
 name: ${CONDA_ENV_NAME}
 channels:
-  - conda-forge
+  - r
   - bioconda
+  - conda-forge
 dependencies:
-  - python=3.10
-  - conda-forge::anndata
-  - conda-forge::numpy
-  - conda-forge::scipy 
-  - cython 
-  - numba 
-  - matplotlib 
-  - scikit-learn 
-  - h5py 
-  - click
-  - conda-forge::scvelo
-  - bioconda::velocyto.py
+  - r-base=4.4.0
+  - r-tidyverse
+  - r-ggplot2
+  - bioconductor-deseq2
+  - r-seurat>=5
+  - r-leiden
+  - r-reticulate
+  - r-glue
+  - r-sessioninfo
+  - python>=3.9
   - pip
   - pip:
-      - pysam
+      - numpy
+      - pandas
+      - python-igraph
+      - leidenalg
 EOF
 
 echo "Environment YAML saved to: ${ENV_FILE}"
