@@ -29,19 +29,19 @@ git init
 
 ```bash
 cd software
-sbatch 010_minforge.slurm  # Build miniforge (required for conda)
+sbatch 010_miniforge.slurm  # Build miniforge (required for conda)
 sbatch 011_conda1.slurm    # Build main conda (R & python) environment
 sbatch 012_conda2.slurm    # Build secondary environment
 ```
 
-Each script can also be run as a shell script: `bash 010_minforge.slurm`
+Each script can also be run as a shell script: `bash 010_miniforge.slurm`
 
 **Note:** All SLURM scripts in this repository use robust path detection that works correctly whether run via `sbatch` or `bash`, even if you have stale SLURM environment variables from previous jobs.
 
 ### Output Directory Structure
 
 **Key Concept:** Each build script creates a numbered output directory that matches the script name:
-- `software/010_minforge.slurm` → `software_out/010_miniforge/`
+- `software/010_miniforge.slurm` → `software_out/010_miniforge/`
 - `software/011_conda1.slurm` → `software_out/011_conda1/`
 - `software/021_apptainer1.slurm` → `software_out/021_apptainer1/`
 - `software/031_deepvariant.slurm` → `software_out/031_deepvariant/`
@@ -63,7 +63,7 @@ This template demonstrates four methods for managing software dependencies:
 Build custom conda environments from YAML specifications.
 
 ```bash
-sbatch 010_minforge.slurm  # Build miniforge (local conda installer)
+sbatch 010_miniforge.slurm  # Build miniforge (local conda installer)
 sbatch 011_conda1.slurm    # Build main (R & python) environment (tidyverse, ggplot2, etc.)
 sbatch 012_conda2.slurm    # Build secondary environment (additional tools, version conflicts, etc.)
 ```
@@ -255,7 +255,7 @@ The script clearly delineates each approach and shows how to switch between envi
 ```
 my_project_name/
   software/                  Build scripts for environments
-    010_minforge.slurm       # Method 1: Build conda (required first)
+    010_miniforge.slurm       # Method 1: Build conda (required first)
     011_conda1.slurm         # Method 1: Build R conda environment (env spec in heredoc)
     012_conda2.slurm         # Method 1: Build Python conda environment (env spec in heredoc)
     021_apptainer1.slurm     # Method 2: Build custom container
@@ -264,7 +264,7 @@ my_project_name/
     apptainer1.def           # Picard container definition
   
   software_out/              Built software (NOT in git)
-    010_miniforge/           # Output from 010_minforge.slurm
+    010_miniforge/           # Output from 010_miniforge.slurm
       use_miniforge.sh       # Auto-generated activation script
       miniforge/             # The miniforge installation
         envs/conda1/         # R environment (built by 011_conda1.slurm)
@@ -418,7 +418,7 @@ When you re-run a conda build script (e.g., `sbatch software/011_conda1.slurm`),
 The renamed directory (with `_DELETE_THIS_` suffix) can be safely deleted after verifying the new build works.
 
 **Same behavior applies to:**
-- `010_minforge.slurm` (renames `010_miniforge/`, reinstalls miniforge)
+- `010_miniforge.slurm` (renames `010_miniforge/`, reinstalls miniforge)
 - `021_apptainer1.slurm` (renames `021_apptainer1/`, rebuilds container)
 - All other software build scripts
 
@@ -711,7 +711,7 @@ For Apptainer containers:
 ### Software Build Scripts (software/ directory)
 
 - **01x**: Conda environments
-  - `010_minforge.slurm` - Build miniforge
+  - `010_miniforge.slurm` - Build miniforge
   - `011_conda1.slurm` - Build conda environment 1
   - `012_conda2.slurm` - Build conda environment 2
 
@@ -733,4 +733,3 @@ A single consolidated demo script demonstrates all software methods:
 - `demo_analysis.slurm` - Demonstrates conda1 (R & Python), conda2 (samtools), and apptainer1 (Picard)
 - `demo_analysis.R` - R analysis script (called by demo_analysis.slurm)
 - `demo_analysis.py` - Python analysis script (called by demo_analysis.slurm)
-

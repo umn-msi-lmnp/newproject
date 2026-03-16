@@ -312,6 +312,12 @@ export RETICULATE_PYTHON="${MINIFORGE_DIR}/bin/python"
 _original_conda_function="$(declare -f conda)"
 eval "$(echo "${_original_conda_function}" | sed 's/conda ()/__original_conda ()/')"
 
+# Ensure conda resolves with Miniforge base python first in PATH.
+# This avoids env python shebang issues when conda is called inside an active env.
+__run_original_conda() {
+    PATH="${MINIFORGE_DIR}/bin:${PATH}" __original_conda "$@"
+}
+
 conda() {
     if [ "$1" = "activate" ]; then
         local nounset_was_on=0
@@ -323,7 +329,7 @@ conda() {
                 ;;
         esac
         # Activate the environment first
-        __original_conda "$@"
+        __run_original_conda "$@"
         conda_status=$?
         if [ "$nounset_was_on" -eq 1 ]; then
             set -u
@@ -354,7 +360,7 @@ conda() {
                 ;;
         esac
         # Deactivate the environment
-        __original_conda "$@"
+        __run_original_conda "$@"
         conda_status=$?
         if [ "$nounset_was_on" -eq 1 ]; then
             set -u
@@ -370,14 +376,14 @@ conda() {
         export RETICULATE_CACHE_DIR="${MINIFORGE_DIR}/.cache/reticulate"
     elif [ "$1" = "env" ] && [ "$2" = "list" ]; then
         # Show only header and environments in this repo
-        __original_conda env list | awk '$1 ~ /^#/ { print }'
-        __original_conda env list | awk -v root="${MINIFORGE_DIR}" '
+        __run_original_conda env list | awk '$1 ~ /^#/ { print }'
+        __run_original_conda env list | awk -v root="${MINIFORGE_DIR}" '
             $1 ~ /^#/ { next }
             index($NF, root) { print }
         '
     else
         # Pass through all other conda commands to the original function
-        __original_conda "$@"
+        __run_original_conda "$@"
     fi
 }
 

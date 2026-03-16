@@ -71,7 +71,7 @@ s3cmd ls s3://BUCKET/projects/standard/GROUP/shared/ris/USER/your_project_name_Y
 ```bash
 # Build miniforge (required - provides conda)
 cd software
-sbatch 010_minforge.slurm
+sbatch 010_miniforge.slurm
 
 # Wait for miniforge to complete, then build conda environments
 sbatch 011_conda1.slurm    # Main R & Python environment
@@ -84,7 +84,7 @@ sbatch 031_deepvariant.slurm # Downloaded container
 **Alternative:** Run as bash scripts instead of submitting to SLURM:
 ```bash
 cd software
-bash 010_minforge.slurm
+bash 010_miniforge.slurm
 bash 011_conda1.slurm
 ```
 
