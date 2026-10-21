@@ -18,12 +18,36 @@ cd my_project_name
 # Remove template git history
 rm -rf .git
 
+# Rename this documentation file, so it does not display on github.com
+mv .github/readme.md .github/documentation.md
+
 # Initialize as new repo
 git init
-
-# Update readme.md with your project information
-# Update changelog.md with your project start date
 ```
+
+- Update `readme.md` with your project information (even if it's just a tiny change, like the title).
+- Save your work by creating your first commit:
+
+```
+git add readme.md
+git commit -m "Initial commit"
+```
+
+- Create a new "remote" repo on GitHub.com
+    - Go to your profile or org and click the green "New" button. 
+    - For our GitHub Organization, go [here for lmnp repos](https://github.com/organizations/umn-msi-lmnp/repositories/new), or [here for mdl repos](https://github.com/organizations/umn-msi-mdl/repositories/new).  
+    - Enter a repo name. This does not need to be exactly the same as your working directory name. For our projects, we choose "GROUP_USER_nice_name_DATE" for the repo name.
+    - Choose "Private" visibility. Internal visibility allows anyone within your GitHub Organization to access the repo. 
+    - Click the green "Create repository" button.
+    - Copy the last 3 commands at the bottom of the page, and paste them on your command line to register the remote and push your first commit. They will look something like this:
+
+    ```
+    git remote add origin https://github.com/MY_GITHUHB_ORG_OR_USERNAME/MY_REPO_NAME.git
+    git branch -M main
+    git push -u origin main
+    ```
+
+
 
 ### 3. Build software environments
 
