@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
@@ -105,8 +105,14 @@ mkdir -p "${APPTAINER_TMPDIR}"
 CONTAINER_SIF="${PROJECT_ROOT}/software_out/021_apptainer1/apptainer1.sif"
 PROJECT_REAL_PATH="$(realpath "${PROJECT_ROOT}")"
 
+if [ ! -f "${CONTAINER_SIF}" ]; then
+    echo "ERROR: Container not found: ${CONTAINER_SIF}"
+    echo "Build it first: sbatch software/021_apptainer1.slurm"
+    exit 1
+fi
+
 echo "Testing Picard in Apptainer container..."
-apptainer exec "${CONTAINER_SIF}" picard -h || true
+apptainer exec "${CONTAINER_SIF}" picard -h
 
 echo "Running Picard ValidateSamFile..."
 apptainer exec \
@@ -115,7 +121,7 @@ apptainer exec \
     picard CleanSam \
     I="${OUT_DIR}/test.sam" \
     O="${OUT_DIR}/test_clean.sam" \
-    > picard_validation.txt 2>&1 || true
+    > picard_validation.txt 2>&1
 
 echo "Apptainer demo complete!"
 
